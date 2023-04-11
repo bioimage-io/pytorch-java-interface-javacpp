@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.scijava</groupId>
+		<artifactId>pom-scijava</artifactId>
+		<version>34.1.0</version>
+		<relativePath />
+	</parent>
+
+	<groupId>io.bioimage</groupId>
+	<artifactId>dl-modelrunner-pytorch-javacpp</artifactId>
+	<version>0.2.1-SNAPSHOT</version>
+
+	<name>Pytorch engine for DL-model-runner using JavaCPP</name>
+	<description>This project complements the DL-model runner acting as the engine that works loading models 
+	and making inference with Java API for Pytorch. This project uses Pytorch with thanks to JavaCPP
+	</description>
+	<url>https://github.com/bioimage-io/pytorch-java-interface-javacpp</url>
+	<inceptionYear>2023</inceptionYear>
+	<organization>
+		<name>BioImage.io</name>
+		<url>https://bioimage.io/</url>
+	</organization>
+	<licenses>
+		<license>
+			<name>Apache License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<id>carlosuc3m</id>
+			<name>Carlos Javier Garcia Lopez de Haro</name>
+			<url>https://github.com/carlosuc3m</url>
+			<roles>
+				<role>developer</role>
+				<role>debugger</role>
+				<role>reviewer</role>
+				<role>support</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
+		<developer>
+			<id>tinevez</id>
+			<name>Jean-Yves Tinevez</name>
+			<url>https://github.com/tinevez</url>
+			<roles>
+				<role>developer</role>
+				<role>debugger</role>
+				<role>reviewer</role>
+				<role>support</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
+		<developer>
+			<id>Stephane-D</id>
+			<name>Stephane Dallongeville </name>
+			<url>https://github.com/Stephane-D</url>
+			<roles>
+				<role>developer</role>
+				<role>debugger</role>
+				<role>reviewer</role>
+				<role>support</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
+		<developer>
+			<id>danyfel80</id>
+			<name>Daniel Felipe González Obando</name>
+			<url>https://gitlab.pasteur.fr/danyfel80</url>
+			<roles>
+				<role>developer</role>
+				<role>debugger</role>
+			</roles>
+		</developer>
+	</developers>
+	<contributors>
+		<contributor>
+			<name>Curtis Rueden</name>
+			<url>https://github.com/ctrueden</url>
+			<properties>
+				<id>ctrueden</id>
+			</properties>
+		</contributor>
+		<contributor>
+			<name>Mark Hiner</name>
+			<url>https://github.com/hinerm</url>
+			<properties>
+				<id>hinerm</id>
+			</properties>
+		</contributor>
+	</contributors>
+
+	<mailingLists>
+		<mailingList>
+			<name>Image.sc Forum</name>
+			<archive>https://forum.image.sc/tag/bioimage-io</archive>
+		</mailingList>
+	</mailingLists>
+
+	<scm>
+		<connection>scm:git:https://github.com/bioimage-io/pytorch-java-interface-javacpp</connection>
+		<developerConnection>scm:git:git@github.com:bioimage-io/pytorch-java-interface-javacpp</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/bioimage-io/pytorch-java-interface-javacpp</url>
+	</scm>
+	<issueManagement>
+		<system>GitHub Issues</system>
+		<url>https://github.com/bioimage-io/pytorch-java-interface-javacpp/issues</url>
+	</issueManagement>
+	<ciManagement>
+		<system>None</system>
+	</ciManagement>
+
+	<properties>
+		<package-name>io.bioimage.modelrunner.pytorch.javacpp</package-name>
+
+		<license.licenseName>apache_2</license.licenseName>
+		<license.copyrightOwners>Institut Pasteur and BioImage.IO developers.</license.copyrightOwners>
+
+		<!-- NB: Deploy releases to the SciJava Maven repository. -->
+		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
+
+		<pytorch-javacpp.version>1.13.1-1.5.9-SNAPSHOT</pytorch-javacpp.version>
+		<dl-modelrunner.version>0.2.0</dl-modelrunner.version>
+		<cuda-javacpp.version>11.8-8.6-1.5.9-SNAPSHOT</cuda-javacpp.version>
+		<mkl-javacpp.version>2022.2-1.5.9-SNAPSHOT</mkl-javacpp.version>
+	</properties>
+
+	<repositories>
+		<repository>
+			<id>scijava.public</id>
+			<url>https://maven.scijava.org/content/groups/public</url>
+		</repository>
+	</repositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>io.bioimage</groupId>
+			<artifactId>dl-modelrunner</artifactId>
+			<version>${dl-modelrunner.version}</version>
+		</dependency>
+		<!--  Dependencies for JavaCPP Pytorch, START -->
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>pytorch-platform</artifactId>
+            <version>${pytorch-javacpp.version}</version>
+        </dependency>
+		<!-- Additional dependencies required to use CUDA, cuDNN, and NCCL -->
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>pytorch-platform-gpu</artifactId>
+            <version>${pytorch-javacpp.version}</version>
+        </dependency>
+        <!-- Additional dependencies to use bundled CUDA, cuDNN, and NCCL -->
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>cuda-platform-redist</artifactId>
+            <version>${cuda-javacpp.version}</version>
+        </dependency>
+        <!-- Additional dependencies to use bundled full version of MKL -->
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>mkl-platform-redist</artifactId>
+            <version>${mkl-javacpp.version}</version>
+        </dependency>
+	</dependencies>
+</project>
