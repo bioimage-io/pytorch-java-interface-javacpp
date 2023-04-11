@@ -100,6 +100,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
         	inputsVector.put(new IValue(JavaCPPTensorBuilder.build(tt)));
         }
         // Run model
+		model.eval();
         IValue output = model.forward(inputsVector);
         TensorVector outputTensorVector = null;
         if (output.isTensorList()) {
