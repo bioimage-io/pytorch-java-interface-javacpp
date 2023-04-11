@@ -1,0 +1,8 @@
+/target/
+/.classpath
+/.project
+/workspace/
+/setting.xml
+.settings/
+/.DS_Store
+/pom - Copy.xml
