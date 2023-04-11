@@ -130,7 +130,10 @@ public class ImgLib2Builder {
     	final ImgFactory< FloatType > factory = new CellImgFactory<>( new FloatType(), 5 );
         final Img< FloatType > outputImg = (Img<FloatType>) factory.create(tensorShape);
     	Cursor<FloatType> tensorCursor= outputImg.cursor();
-		float[] flatArr = tensor.asByteBuffer().asFloatBuffer().array();
+    	long flatSize = 1;
+    	for (long l : tensorShape) {flatSize *= l;}
+    	float[] flatArr = new float[(int) flatSize];
+    	tensor.data_ptr_float().get(flatArr);
 		while (tensorCursor.hasNext()) {
 			tensorCursor.fwd();
 			long[] cursorPos = tensorCursor.positionAsLongArray();

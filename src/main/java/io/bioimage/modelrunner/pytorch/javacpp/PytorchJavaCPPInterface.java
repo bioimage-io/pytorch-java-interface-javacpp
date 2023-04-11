@@ -101,7 +101,13 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
         }
         // Run model
         IValue output = model.forward(inputsVector);
-        TensorVector outputTensorVector = output.toTensorVector();
+        TensorVector outputTensorVector = null;
+        if (output.isTensorList()) {
+        	outputTensorVector = output.toTensorVector();
+        } else {
+        	outputTensorVector = new TensorVector();
+        	outputTensorVector.put(output.toTensor());
+        }
 		// Fill the agnostic output tensors list with data from the inference result
 		fillOutputTensors(outputTensorVector, outputTensors);
 		outputTensorVector.close();
