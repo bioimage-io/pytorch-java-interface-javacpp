@@ -1,4 +1,4 @@
-[![Build Status](https://github.com/bioimage-io/pytorch-java-interface-javacpp/actions/workflows/build.yml/badge.svg)](https://github.com/bioimage-io/pytorch-java-interface/actions/workflows/build.yml)
+[![Build Status](https://github.com/bioimage-io/pytorch-java-interface-javacpp/actions/workflows/build.yml/badge.svg)](https://github.com/bioimage-io/pytorch-java-interface-javacpp/actions/workflows/build.yml)
 
 # dl-modelrunner-java: pytorch-javacpp
 
