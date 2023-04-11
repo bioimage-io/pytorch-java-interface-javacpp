@@ -105,15 +105,9 @@ public class ImgLib2Builder {
     private static Img<FloatType> buildFromTensorFloat(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] tensorShape = tensor.shape();
-    	Tensor vv = tensor.get(0);
     	final ImgFactory< FloatType > factory = new CellImgFactory<>( new FloatType(), 5 );
         final Img< FloatType > outputImg = (Img<FloatType>) factory.create(tensorShape);
     	Cursor<FloatType> tensorCursor= outputImg.cursor();
-    	Object aa = tensor.asBuffer().position();
-    	Object aba = tensor.asBuffer().remaining();
-    	ByteBuffer a = tensor.asByteBuffer();
-    	FloatBuffer b = a.asFloatBuffer();
-    	System.out.println(a.remaining());
 		float[] flatArr = tensor.asByteBuffer().asFloatBuffer().array();
 		while (tensorCursor.hasNext()) {
 			tensorCursor.fwd();

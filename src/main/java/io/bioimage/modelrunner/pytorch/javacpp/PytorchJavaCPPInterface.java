@@ -1,17 +1,14 @@
 package io.bioimage.modelrunner.pytorch.javacpp;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import org.bytedeco.javacpp.BytePointer;
-import org.bytedeco.javacpp.indexer.Indexer;
 import org.bytedeco.pytorch.IValue;
 import org.bytedeco.pytorch.IValueVector;
 import org.bytedeco.pytorch.JitModule;
+import org.bytedeco.pytorch.TensorVector;
 
 import io.bioimage.modelrunner.engine.DeepLearningEngineInterface;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
@@ -41,55 +38,31 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     }
     
     public static void main(String[] args) {
-    	/* try to use MKL when available */
-    	// Load a Torchscript model
-    	
-    	//org.bytedeco.pytorch.global.torch.ExportModule(model, filenamePointer);
-    	
-    	// Create an input tensor
-    	org.bytedeco.pytorch.Tensor inputTensor = 
-    			org.bytedeco.pytorch.Tensor.create(new float[256* 256], 
-    											new long[] {1, 1, 256, 256});
-    	
-    	// Run the model
-    	boolean aa = model.is_training();
-    	boolean bb = model.is_training();
-    	IValue outputTensor = model.forward(new IValueVector(new IValue(inputTensor)));
-    	
-    	// Print shape of the output tensor
-    	System.out.println(Arrays.toString(outputTensor.toTensor().shape()));
-    	
-    	// Retrieve result
-    	float[] array = new float[256 * 256 * 2];
-    	Indexer indexer = outputTensor.toTensor().createIndexer();
-    	double dd = indexer.getDouble(new long[] {0, 0, 0, 0});
-    	double ddd = indexer.getDouble(new long[] {0, 1, 0, 0});
-    	System.out.println(dd);
-    	System.out.println(ddd);
-    	System.out.println("Done");
     }
 
 	@Override
 	public void run(List<Tensor<?>> inputTensors, List<Tensor<?>> outputTensors) throws RunModelException {
-		List<org.bytedeco.pytorch.Tensor> inputList = new ArrayList<org.bytedeco.pytorch.Tensor>();
-        List<String> inputListNames = new ArrayList<String>();
+		IValueVector inputsVector = new IValueVector();
+		List<String> inputListNames = new ArrayList<String>();
         for (Tensor<?> tt : inputTensors) {
         	inputListNames.add(tt.getName());
-        	inputList.add(JavaCPPTensorBuilder.build(tt));
+        	inputsVector.put(new IValue(JavaCPPTensorBuilder.build(tt)));
         }
         // Run model
-        IValue outputTensor = model.forward(new IValueVector(new IValue(inputTensor)));
-    	// Print shape of the output tensor
-    	System.out.println(Arrays.toString(outputTensor.toTensor().shape()));
-    	
-    	// Retrieve result
-    	float[] array = new float[256 * 256 * 2];
-    	Indexer indexer = outputTensor.toTensor().createIndexer();
-    	double dd = indexer.getDouble(new long[] {0, 0, 0, 0});
-    	double ddd = indexer.getDouble(new long[] {0, 1, 0, 0});
-        List<org.bytedeco.pytorch.Tensor> outputNDArrays = null;
+        IValue output = model.forward(inputsVector);
+        TensorVector outputTensorVector = output.toTensorVector();
 		// Fill the agnostic output tensors list with data from the inference result
-		fillOutputTensors(outputNDArrays, outputTensors);
+		fillOutputTensors(outputTensorVector, outputTensors);
+		outputTensorVector.close();
+		outputTensorVector.deallocate();
+		output.close();
+		output.deallocate();
+		for (int i = 0; i < inputsVector.size(); i ++) {
+			inputsVector.get(i).close();
+			inputsVector.get(i).deallocate();
+		}
+		inputsVector.close();
+		inputsVector.deallocate();		
 	}
 
 	@Override
@@ -104,8 +77,10 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 
 	@Override
 	public void closeModel() {
-		if (model != null)
-		model = null;		
+		if (model == null)
+			return;
+		model.close();
+		model.deallocate();
 	}
 	
 	/**
@@ -119,11 +94,13 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	 * @throws RunModelException If the number of tensors expected is not the same as the number of
 	 * 	Tensors outputed by the model
 	 */
-	public static void fillOutputTensors(List<org.bytedeco.pytorch.Tensor> outputNDArrays, List<Tensor<?>> outputTensors) throws RunModelException{
+	public static void fillOutputTensors(TensorVector outputNDArrays, List<Tensor<?>> outputTensors) throws RunModelException{
 		if (outputNDArrays.size() != outputTensors.size())
-			throw new RunModelException(outputNDArrays.size(), outputTensors.size());
+			throw new RunModelException((int) outputNDArrays.size(), outputTensors.size());
 		for (int i = 0; i < outputNDArrays.size(); i ++) {
 			outputTensors.get(i).setData(ImgLib2Builder.build(outputNDArrays.get(i)));
+			outputNDArrays.get(i).close();
+			outputNDArrays.get(i).deallocate();
 		}
 	}
 	
