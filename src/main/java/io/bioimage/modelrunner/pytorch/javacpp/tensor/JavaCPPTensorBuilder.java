@@ -38,24 +38,27 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
 import net.imglib2.view.IntervalView;
 
-
+/**
+ * Class that manages the creation of JAvaCPP Pytorch tensors  
+ * {@link org.bytedeco.pytorch.Tensor} from JDLL tensors {@link Tensor} that
+ * use ImgLib2 {@link RandomAccessibleIntervals} as the backend
+ * 
+ * @author Carlos Garcia Lopez de Haro
+ *
+ */
 public class JavaCPPTensorBuilder {
 
-
-    /**
-     * Creates a {@link NDArray} from a given {@link Tensor} and an array with its dimensions order.
-     * 
-     * @param tensor
-     *        The tensor data is read from.
-     * @param manager
-     *        {@link NDManager} needed to create NDArrays
-     * @return The NDArray built from the tensor.
-     * @throws IllegalArgumentException
-     *         If the tensor type is not supported.
-     */
+	/**
+	 * Creates a {@link org.bytedeco.pytorch.Tensor} from a given {@link Tensor}. 
+	 * The {@link Tensor} contains the data and info(dimensions, dataype) 
+	 * necessary to build a {@link org.bytedeco.pytorch.Tensor}
+	 * @param tensor
+	 * 	The {@link Tensor} that will be copied into a {@link org.bytedeco.pytorch.Tensor}
+	 * @return The {@link NDArray} built from the {@link org.bytedeco.pytorch.Tensor}.
+	 * @throws IllegalArgumentException if the tensor type is not supported
+	 */
     public static org.bytedeco.pytorch.Tensor build(Tensor tensor) throws IllegalArgumentException
     {
-        // Create an Icy sequence of the same type of the tensor
     	if (Util.getTypeFromInterval(tensor.getData()) instanceof ByteType) {
             return buildFromTensorByte( tensor.getData());
     	} else if (Util.getTypeFromInterval(tensor.getData()) instanceof IntType) {
@@ -68,17 +71,17 @@ public class JavaCPPTensorBuilder {
             throw new IllegalArgumentException("Unsupported tensor type: " + tensor.getDataType());
     	}
     }
-    /**
-     * Creates a {@link NDArray} from a given {@link RandomAccessibleInterval} and an array with its dimensions order.
-     * 
-     * @param tensor
-     *        The INDArray containing the wanted data.
-     * @param manager
-     *        {@link NDManager} needed to create NDArrays
-     * @return The NDArray built from the tensor.
-     * @throws IllegalArgumentException
-     *         If the tensor type is not supported.
-     */
+
+	/**
+	 * Creates a {@link org.bytedeco.pytorch.Tensor} from a given {@link RandomAccessibleInterval}.
+	 * 
+	 * @param <T>
+	 * 	possible ImgLib2 datatypes of the {@link RandomAccessibleInterval}
+	 * @param tensor
+	 * 	the {@link RandomAccessibleInterval} that will be copied into an {@link org.bytedeco.pytorch.Tensor}
+	 * @return The {@link org.bytedeco.pytorch.Tensor} built from the {@link RandomAccessibleInterval}.
+	 * @throws IllegalArgumentException if the {@link RandomAccessibleInterval} is not supported
+	 */
     public static <T extends Type<T>> org.bytedeco.pytorch.Tensor build(RandomAccessibleInterval<T> tensor) throws IllegalArgumentException
     {
     	if (Util.getTypeFromInterval(tensor) instanceof ByteType) {
@@ -94,15 +97,14 @@ public class JavaCPPTensorBuilder {
     	}
     }
 
-    /**
-     * Builds a {@link NDArray} from a unsigned byte-typed {@link RandomAccessibleInterval}.
-     * 
-     * @param tensor
-     *        The tensor data is read from.
-     * @param manager
-     *        {@link NDManager} needed to create NDArrays
-     * @return The NDArray built from the tensor of type {@link DataType#UBYTE}.
-     */
+	/**
+	 * Builds a {@link org.bytedeco.pytorch.Tensor} from a signed byte-typed
+	 * {@link RandomAccessibleInterval}.
+	 * 
+	 * @param tensor 
+	 * 	the {@link RandomAccessibleInterval} that will be copied into an {@link org.bytedeco.pytorch.Tensor}
+	 * @return The {@link org.bytedeco.pytorch.Tensor} built from the tensor of type {@link ByteType}.
+	 */
     private static org.bytedeco.pytorch.Tensor buildFromTensorByte(RandomAccessibleInterval<ByteType> tensor)
     {
     	long[] tensorShape = tensor.dimensionsAsLongArray();
@@ -128,15 +130,14 @@ public class JavaCPPTensorBuilder {
 	 	return ndarray;
 	}
 
-    /**
-     * Builds a {@link NDArray} from a unsigned integer-typed {@link RandomAccessibleInterval}.
-     * 
-     * @param tensor
-     *        The tensor data is read from.
-     * @param manager
-     *        {@link NDManager} needed to create NDArrays
-     * @return The NDArray built from the tensor of type {@link DataType#INT}.
-     */
+	/**
+	 * Builds a {@link org.bytedeco.pytorch.Tensor} from a signed integer-typed
+	 * {@link RandomAccessibleInterval}.
+	 * 
+	 * @param tensor 
+	 * 	the {@link RandomAccessibleInterval} that will be copied into an {@link org.bytedeco.pytorch.Tensor}
+	 * @return The {@link org.bytedeco.pytorch.Tensor} built from the tensor of type {@link IntType}.
+	 */
     private static org.bytedeco.pytorch.Tensor buildFromTensorInt(RandomAccessibleInterval<IntType> tensor)
     {
     	long[] tensorShape = tensor.dimensionsAsLongArray();
@@ -162,15 +163,14 @@ public class JavaCPPTensorBuilder {
 	 	return ndarray;
     }
 
-    /**
-     * Builds a {@link NDArray} from a unsigned float-typed {@link RandomAccessibleInterval}.
-     * 
-     * @param tensor
-     *        The tensor data is read from.
-     * @param manager
-     *        {@link NDManager} needed to create NDArrays
-     * @return The NDArray built from the tensor of type {@link DataType#FLOAT}.
-     */
+	/**
+	 * Builds a {@link org.bytedeco.pytorch.Tensor} from a signed float-typed
+	 * {@link RandomAccessibleInterval}.
+	 * 
+	 * @param tensor 
+	 * 	the {@link RandomAccessibleInterval} that will be copied into an {@link org.bytedeco.pytorch.Tensor}
+	 * @return The {@link org.bytedeco.pytorch.Tensor} built from the tensor of type {@link FloatType}.
+	 */
     private static org.bytedeco.pytorch.Tensor buildFromTensorFloat(RandomAccessibleInterval<FloatType> tensor)
     {
     	long[] tensorShape = tensor.dimensionsAsLongArray();
@@ -196,15 +196,14 @@ public class JavaCPPTensorBuilder {
 	 	return ndarray;
     }
 
-    /**
-     * Builds a {@link NDArray} from a unsigned double-typed {@link RandomAccessibleInterval}.
-     * 
-     * @param tensor
-     *        The tensor data is read from.
-     * @param manager
-     *        {@link NDManager} needed to create NDArrays
-     * @return The NDArray built from the tensor of type {@link DataType#DOUBLE}.
-     */
+	/**
+	 * Builds a {@link org.bytedeco.pytorch.Tensor} from a signed double-typed
+	 * {@link RandomAccessibleInterval}.
+	 * 
+	 * @param tensor 
+	 * 	the {@link RandomAccessibleInterval} that will be copied into an {@link NDArray}
+	 * @return The {@link org.bytedeco.pytorch.Tensor} built from the tensor of type {@link DoubleType}.
+	 */
     private static org.bytedeco.pytorch.Tensor buildFromTensorDouble(RandomAccessibleInterval<DoubleType> tensor)
     {
     	long[] tensorShape = tensor.dimensionsAsLongArray();
