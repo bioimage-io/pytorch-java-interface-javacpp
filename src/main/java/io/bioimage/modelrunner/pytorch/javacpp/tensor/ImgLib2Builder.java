@@ -38,18 +38,26 @@ import net.imglib2.type.numeric.integer.LongType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 
+/**
+* A {@link Img} builder for JAvaCPP Pytorch {@link org.bytedeco.pytorch.Tensor} objects.
+* Build ImgLib2 objects (backend of {@link io.bioimage.modelrunner.tensor.Tensor})
+* from Pytorch {@link org.bytedeco.pytorch.Tensor}
+* 
+* @author Carlos Garcia Lopez de Haro
+*/
 public class ImgLib2Builder {
 
-
-    /**
-     * Creates a {@link Img} from a given {@link Tensor} and an array with its dimensions order.
-     * 
-     * @param tensor
-     *        The tensor data is read from.
-     * @return The INDArray built from the tensor.
-     * @throws IllegalArgumentException
-     *         If the tensor type is not supported.
-     */
+	/**
+	 * Creates a {@link Img} from a given {@link org.bytedeco.pytorch.Tensor} 
+	 *  
+	 * @param <T>
+	 * 	the ImgLib2 data type that the {@link Img} can have
+	 * @param tensor
+	 * 	the {@link org.bytedeco.pytorch.Tensor} that wants to be converted
+	 * @return the {@link Img} that resulted from the {@link org.bytedeco.pytorch.Tensor} 
+	 * @throws IllegalArgumentException if the dataype of the {@link org.bytedeco.pytorch.Tensor} 
+	 * is not supported
+	 */
     public static <T extends Type<T>> Img<T> build(org.bytedeco.pytorch.Tensor tensor) throws IllegalArgumentException
     {
         if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Byte)
@@ -68,13 +76,14 @@ public class ImgLib2Builder {
     	}
     }
 
-    /**
-     * Builds a {@link Img} from a unsigned byte-typed {@link NDArray}.
-     * 
-     * @param tensor
-     *        The tensor data is read from.
-     * @return The INDArray built from the tensor of type {@link DataType#UBYTE}.
-     */
+
+	/**
+	 * Builds a {@link Img} from a signed byte-typed {@link org.bytedeco.pytorch.Tensor}.
+	 * 
+	 * @param tensor 
+	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
+	 * @return The {@link Img} built from the tensor of type {@link ByteType}.
+	 */
     private static Img<ByteType> buildFromTensorByte(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] tensorShape = tensor.shape();
@@ -95,13 +104,13 @@ public class ImgLib2Builder {
 	 	return outputImg;
 	}
 
-    /**
-     * Builds a {@link Img} from a unsigned integer-typed {@link NDArray}.
-     * 
-     * @param tensor
-     *        The tensor data is read from.
-     * @return The INDArray built from the tensor of type {@link DataType#INT}.
-     */
+	/**
+	 * Builds a {@link Img} from a signed integer-typed {@link org.bytedeco.pytorch.Tensor}.
+	 * 
+	 * @param tensor 
+	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
+	 * @return The {@link Img} built from the tensor of type {@link IntType}.
+	 */
     private static Img<IntType> buildFromTensorInt(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] tensorShape = tensor.shape();
@@ -122,13 +131,13 @@ public class ImgLib2Builder {
 	 	return outputImg;
     }
 
-    /**
-     * Builds a {@link Img} from a unsigned float-typed {@link Tensor}.
-     * 
-     * @param tensor
-     *        The tensor data is read from.
-     * @return The INDArray built from the tensor of type {@link DataType#FLOAT}.
-     */
+	/**
+	 * Builds a {@link Img} from a signed float-typed {@link org.bytedeco.pytorch.Tensor}.
+	 * 
+	 * @param tensor 
+	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
+	 * @return The {@link Img} built from the tensor of type {@link FloatType}.
+	 */
     private static Img<FloatType> buildFromTensorFloat(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] tensorShape = tensor.shape();
@@ -149,13 +158,13 @@ public class ImgLib2Builder {
 	 	return outputImg;
     }
 
-    /**
-     * Builds a {@link Img} from a unsigned double-typed {@link NDArray}.
-     * 
-     * @param tensor
-     *        The tensor data is read from.
-     * @return The INDArray built from the tensor of type {@link DataType#DOUBLE}.
-     */
+	/**
+	 * Builds a {@link Img} from a signed double-typed {@link org.bytedeco.pytorch.Tensor}.
+	 * 
+	 * @param tensor 
+	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
+	 * @return The {@link Img} built from the tensor of type {@link DoubleType}.
+	 */
     private static Img<DoubleType> buildFromTensorDouble(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] tensorShape = tensor.shape();
@@ -176,13 +185,13 @@ public class ImgLib2Builder {
 	 	return outputImg;
     }
 
-    /**
-     * Builds a {@link Img} from a unsigned double-typed {@link NDArray}.
-     * 
-     * @param tensor
-     *        The tensor data is read from.
-     * @return The INDArray built from the tensor of type {@link DataType#DOUBLE}.
-     */
+	/**
+	 * Builds a {@link Img} from a signed long-typed {@link org.bytedeco.pytorch.Tensor}.
+	 * 
+	 * @param tensor 
+	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
+	 * @return The {@link Img} built from the tensor of type {@link LongType}.
+	 */
     private static Img<LongType> buildFromTensorLong(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] tensorShape = tensor.shape();
