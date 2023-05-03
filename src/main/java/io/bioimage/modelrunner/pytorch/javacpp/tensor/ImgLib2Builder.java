@@ -25,7 +25,6 @@
  */
 package io.bioimage.modelrunner.pytorch.javacpp.tensor;
 
-import org.bytedeco.pytorch.Tensor;
 
 import io.bioimage.modelrunner.utils.IndexingUtils;
 import net.imglib2.Cursor;
@@ -35,6 +34,7 @@ import net.imglib2.type.Type;
 import net.imglib2.type.numeric.integer.ByteType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.LongType;
+import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 
@@ -76,6 +76,36 @@ public class ImgLib2Builder {
     	}
     }
 
+	/**
+	 * Builds a {@link Img} from a unsigned byte-typed {@link org.bytedeco.pytorch.Tensor}.
+	 * 
+	 * @param tensor 
+	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
+	 * @return The {@link Img} built from the tensor of type {@link UnsignedByteType}.
+	 */
+    public static Img<UnsignedByteType> buildFromTensorUByte(org.bytedeco.pytorch.Tensor tensor) {
+		long[] tensorShape = tensor.shape();
+		final ArrayImgFactory<UnsignedByteType> factory = new ArrayImgFactory<>(new UnsignedByteType());
+		final Img<UnsignedByteType> outputImg = factory.create(tensorShape);
+		Cursor<UnsignedByteType> tensorCursor = outputImg.cursor();
+		long flatSize = 1;
+    	for (long l : tensorShape) {flatSize *= l;}
+    	byte[] flatArr = new byte[(int) flatSize];
+    	tensor.data_ptr_byte().get(flatArr);
+		while (tensorCursor.hasNext()) {
+			tensorCursor.fwd();
+			long[] cursorPos = tensorCursor.positionAsLongArray();
+			int flatPos = IndexingUtils.multidimensionalIntoFlatIndex(cursorPos,
+				tensorShape);
+			byte val = flatArr[flatPos];
+			if (val < 0)
+				tensorCursor.get().set(256 + (int) val);
+			else
+				tensorCursor.get().set(val);
+		}
+		return outputImg;
+	}
+
 
 	/**
 	 * Builds a {@link Img} from a signed byte-typed {@link org.bytedeco.pytorch.Tensor}.
@@ -84,7 +114,7 @@ public class ImgLib2Builder {
 	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
 	 * @return The {@link Img} built from the tensor of type {@link ByteType}.
 	 */
-    private static Img<ByteType> buildFromTensorByte(org.bytedeco.pytorch.Tensor tensor)
+    public static Img<ByteType> buildFromTensorByte(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] tensorShape = tensor.shape();
     	final ArrayImgFactory< ByteType > factory = new ArrayImgFactory<>( new ByteType() );
@@ -111,7 +141,7 @@ public class ImgLib2Builder {
 	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
 	 * @return The {@link Img} built from the tensor of type {@link IntType}.
 	 */
-    private static Img<IntType> buildFromTensorInt(org.bytedeco.pytorch.Tensor tensor)
+    public static Img<IntType> buildFromTensorInt(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] tensorShape = tensor.shape();
     	final ArrayImgFactory< IntType > factory = new ArrayImgFactory<>( new IntType() );
@@ -138,7 +168,7 @@ public class ImgLib2Builder {
 	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
 	 * @return The {@link Img} built from the tensor of type {@link FloatType}.
 	 */
-    private static Img<FloatType> buildFromTensorFloat(org.bytedeco.pytorch.Tensor tensor)
+    public static Img<FloatType> buildFromTensorFloat(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] tensorShape = tensor.shape();
     	final ArrayImgFactory< FloatType > factory = new ArrayImgFactory<>( new FloatType() );
@@ -165,7 +195,7 @@ public class ImgLib2Builder {
 	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
 	 * @return The {@link Img} built from the tensor of type {@link DoubleType}.
 	 */
-    private static Img<DoubleType> buildFromTensorDouble(org.bytedeco.pytorch.Tensor tensor)
+    public static Img<DoubleType> buildFromTensorDouble(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] tensorShape = tensor.shape();
     	final ArrayImgFactory< DoubleType > factory = new ArrayImgFactory<>( new DoubleType() );
@@ -192,7 +222,7 @@ public class ImgLib2Builder {
 	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
 	 * @return The {@link Img} built from the tensor of type {@link LongType}.
 	 */
-    private static Img<LongType> buildFromTensorLong(org.bytedeco.pytorch.Tensor tensor)
+    public static Img<LongType> buildFromTensorLong(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] tensorShape = tensor.shape();
     	final ArrayImgFactory< LongType > factory = new ArrayImgFactory<>( new LongType() );
