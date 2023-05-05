@@ -41,7 +41,7 @@ import net.imglib2.view.IntervalView;
 /**
  * Class that manages the creation of JAvaCPP Pytorch tensors  
  * {@link org.bytedeco.pytorch.Tensor} from JDLL tensors {@link Tensor} that
- * use ImgLib2 {@link RandomAccessibleIntervals} as the backend
+ * use ImgLib2 {@link RandomAccessibleInterval} as the backend
  * 
  * @author Carlos Garcia Lopez de Haro
  *
@@ -54,7 +54,7 @@ public class JavaCPPTensorBuilder {
 	 * necessary to build a {@link org.bytedeco.pytorch.Tensor}
 	 * @param tensor
 	 * 	The {@link Tensor} that will be copied into a {@link org.bytedeco.pytorch.Tensor}
-	 * @return The {@link NDArray} built from the {@link org.bytedeco.pytorch.Tensor}.
+	 * @return The {@link org.bytedeco.pytorch.Tensor} built from the {@link Tensor}.
 	 * @throws IllegalArgumentException if the tensor type is not supported
 	 */
     public static org.bytedeco.pytorch.Tensor build(Tensor tensor) throws IllegalArgumentException
