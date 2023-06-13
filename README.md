@@ -11,7 +11,7 @@ To use with maven:
 <dependency>
   <groupId>io.bioimage</groupId>
   <artifactId>dl-modelrunner-pytorch-javacpp</artifactId>
-  <version>0.2.1-SNAPSHOT</version>
+  <version>0.3.0</version>
 </dependency>
 ```
 
@@ -31,13 +31,13 @@ In order to have GPU support to the project add the following deps to the pom.xm
 <dependency>
     <groupId>org.bytedeco</groupId>
     <artifactId>pytorch-platform-gpu</artifactId>
-    <version>2.0.1-1.5.9-SNAPSHOT</version>
+    <version>2.0.1-1.5.9</version>
 </dependency>
 
 <!-- Additional dependencies to use bundled CUDA, cuDNN, and NCCL -->
 <dependency>
     <groupId>org.bytedeco</groupId>
     <artifactId>cuda-platform-redist</artifactId>
-    <version>12.1-8.9-1.5.9-SNAPSHOT</version>
+    <version>11.8-8.6-1.5.8</version>
 </dependency>
 ```
