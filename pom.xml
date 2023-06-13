@@ -156,19 +156,5 @@
             <artifactId>mkl-platform-redist</artifactId>
             <version>${mkl-javacpp.version}</version>
         </dependency>
-
-        <!-- Additional dependencies required to use CUDA, cuDNN, and NCCL -->
-        <dependency>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>pytorch-platform-gpu</artifactId>
-            <version>${pytorch-javacpp.version}</version>
-        </dependency>
-
-        <!-- Additional dependencies to use bundled CUDA, cuDNN, and NCCL -->
-        <dependency>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>cuda-platform-redist</artifactId>
-            <version>${cuda-javacpp.version}</version>
-        </dependency>
 	</dependencies>
 </project>
