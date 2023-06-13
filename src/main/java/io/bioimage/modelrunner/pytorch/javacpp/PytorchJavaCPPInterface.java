@@ -316,12 +316,12 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
         		&& !modelrunnerPath.contains(File.pathSeparator))
         	modelrunnerPath = System.getProperty("java.class.path");
         String classpath =  modelrunnerPath + File.pathSeparator + imglib2Path + File.pathSeparator;
-        ProtectionDomain protectionDomain = Tensorflow2Interface.class.getProtectionDomain();
+        ProtectionDomain protectionDomain = PytorchJavaCPPInterface.class.getProtectionDomain();
         CodeSource codeSource = protectionDomain.getCodeSource();
         for (File ff : new File(codeSource.getLocation().getPath()).getParentFile().listFiles()) {
         	classpath += ff.getAbsolutePath() + File.pathSeparator;
         }
-        String className = Tensorflow2Interface.class.getName();
+        String className = PytorchJavaCPPInterface.class.getName();
         List<String> command = new LinkedList<String>();
         command.add(javaBin);
         command.add("-cp");
