@@ -269,12 +269,9 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 					if (key.equals(ERROR_PREFIX))
 						throw new RunModelException((String) response.get(key));
 					else if (key.startsWith(OUTPUT_PREFIX)) {
-		    			Tensor<?> tt = MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap((byte[]) response.get(key)));
-						for (Tensor tensor : outputTensors) {
-							if (tensor.getName().equals(tt.getName())) {
-								tensor.setData((RandomAccessibleInterval<?>) tt.getData());
-							}
-						}
+		    			Tensor tt = MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap((byte[]) response.get(key)));
+		    			outputTensors.stream().filter(tensor -> tensor.getName().equals(tt.getName()))
+		    		    .forEach(tensor -> tensor.setData((RandomAccessibleInterval) tt.getData()));
 					}
 				}
 			}
