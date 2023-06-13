@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.bytedeco.pytorch.IValue;
 import org.bytedeco.pytorch.IValueVector;
@@ -44,6 +45,7 @@ import org.bytedeco.pytorch.JitModule;
 import org.bytedeco.pytorch.TensorVector;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import io.bioimage.modelrunner.engine.DeepLearningEngineInterface;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
@@ -54,6 +56,7 @@ import io.bioimage.modelrunner.pytorch.javacpp.tensor.mappedbuffer.ImgLib2ToMapp
 import io.bioimage.modelrunner.pytorch.javacpp.tensor.mappedbuffer.MappedBufferToImgLib2;
 import io.bioimage.modelrunner.system.PlatformDetection;
 import io.bioimage.modelrunner.tensor.Tensor;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
 
 /**
@@ -98,6 +101,20 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
      * String that separates the prefic from the name from the data
      */
     final private static String SEPARATOR = "::--??";
+    /**
+     * Error message of the main method
+     */
+    final private static String MAIN_ERR_MESSAGE = "Error exectuting Pytorch, "
+			+ "at least 3 arguments are required:" + System.lineSeparator()
+			+ " - File path to the torchscript model" + System.lineSeparator()
+			+ " - Name of the model input followed by the String + '_model_input'" + System.lineSeparator()
+			+ " - Name of the second model input (if it exists) followed by the String + '_model_input'" + System.lineSeparator()
+			+ " - ...." + System.lineSeparator()
+			+ " - Name of the nth model input (if it exists)  followed by the String + '_model_input'" + System.lineSeparator()
+			+ " - Name of the model output followed by the String + '_model_output'" + System.lineSeparator()
+			+ " - Name of the second model output (if it exists) followed by the String + '_model_output'" + System.lineSeparator()
+			+ " - ...." + System.lineSeparator()
+			+ " - Name of the nth model output (if it exists)  followed by the String + '_model_output'" + System.lineSeparator();
 	/**
 	 * The Pytorch torchscript model loaded with JavaCpp
 	 */
@@ -138,9 +155,8 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
      * in Windows and Mac
      * @param doInterprocessing
      * 	whether to do interprocessing or not
-     * @throws IOException if the temp dir is not found
      */
-    private PytorchJavaCPPInterface(boolean doInterprocessing) throws IOException
+    private PytorchJavaCPPInterface(boolean doInterprocessing)
     {
     	if (!doInterprocessing) {
     		interprocessing = false;
@@ -240,13 +256,29 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 			ProcessBuilder builder = new ProcessBuilder(args);
 	        Process process = builder.start();
 			BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
-	        while (true) {
-	        	break;
-	        }
-			if (process.waitFor() != 0)
-	    		throw new RunModelException("Error executing the Tensorflow 2 model in"
-	        			+ " a separate process. The process was not terminated correctly."
-	        			+ System.lineSeparator() + readProcessStringOutput(process));
+			
+			
+			String line = stdout.readLine();
+			while (process.isAlive() || line != null) {
+				if (line == null)
+					continue;
+				if (!isJson(line))
+					continue;
+				Map<String, Object> response = decode(line);
+				for (String key : response.keySet()) {
+					if (key.equals(ERROR_PREFIX))
+						throw new RunModelException((String) response.get(key));
+					else if (key.startsWith(OUTPUT_PREFIX)) {
+		    			Tensor<?> tt = MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap((byte[]) response.get(key)));
+						for (Tensor tensor : outputTensors) {
+							if (tensor.getName().equals(tt.getName())) {
+								tensor.setData((RandomAccessibleInterval<?>) tt.getData());
+							}
+						}
+					}
+				}
+			}
+
 		} catch (RunModelException e) {
 			closeModel();
 			throw e;
@@ -254,8 +286,6 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 			closeModel();
 			throw new RunModelException(e.toString());
 		}
-		
-		retrieveInterprocessingTensors(outputTensors);
 	}
 	
     /**
@@ -303,41 +333,6 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
         command.add(modelSource);
         return command;
 	}
-    
-    /**
-     * MEthod to obtain the String output of the process in case something goes wrong
-     * @param process
-     * 	the process that executed the TF2 model
-     * @return the String output that we would have seen on the terminal
-     * @throws IOException if the output of the terminal cannot be seen
-     */
-    private static String readProcessStringOutput(Process process) throws IOException {
-    	BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-		BufferedReader bufferedErrReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-		String text = "";
-		String line;
-	    while ((line = bufferedErrReader.readLine()) != null) {
-	    	text += line + System.lineSeparator();
-	    }
-	    while ((line = bufferedReader.readLine()) != null) {
-	    	text += line + System.lineSeparator();
-	    }
-	    return text;
-    }
-	
-	/**
-	 * Retrieves the data of the tensors contained in the input list from the output
-	 * generated by the independent process
-	 * @param tensors
-	 * 	list of tensors that are going to be filled
-	 * @throws RunModelException if there is any issue retrieving the data from the other process
-	 */
-	private void retrieveInterprocessingTensors(List<Tensor<?>> tensors) throws RunModelException{
-		for (Tensor<?> tensor : tensors) {
-			ByteBuffer byteBuffer = null;
-			tensor.setData(MappedBufferToImgLib2.build(byteBuffer));
-		}
-	}
 	
 	/**
 	 * Method that gets the path to the JAR from where a specific class is being loaded
@@ -382,6 +377,8 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 			return;
 		model.close();
 		model.deallocate();
+		if (stdin != null)
+			stdin.close();
 	}
 
 	/**
@@ -430,32 +427,28 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
      * @throws IOException	if there is any error reading or writing any file or with the paths
      * @throws RunModelException	if there is any error running the model
      */
-    public static void main(String[] args) throws LoadModelException, IOException, RunModelException {
+    public static void main(String[] args) {
     	// Unpack the args needed   	
-    	if (args.length < 3)
-    		throw new IllegalArgumentException("Error exectuting Pytorch, "
-    				+ "at least 3 arguments are required:" + System.lineSeparator()
-    				+ " - File path to the torchscript model" + System.lineSeparator()
-    				+ " - Name of the model input followed by the String + '_model_input'" + System.lineSeparator()
-    				+ " - Name of the second model input (if it exists) followed by the String + '_model_input'" + System.lineSeparator()
-    				+ " - ...." + System.lineSeparator()
-    				+ " - Name of the nth model input (if it exists)  followed by the String + '_model_input'" + System.lineSeparator()
-    				+ " - Name of the model output followed by the String + '_model_output'" + System.lineSeparator()
-    				+ " - Name of the second model output (if it exists) followed by the String + '_model_output'" + System.lineSeparator()
-    				+ " - ...." + System.lineSeparator()
-    				+ " - Name of the nth model output (if it exists)  followed by the String + '_model_output'" + System.lineSeparator()
-    				);
+    	PytorchJavaCPPInterface tfInterface = new PytorchJavaCPPInterface(false);
+    	tfInterface.stdin = new PrintWriter(System.out);
+    	if (args.length < 3) {
+			tfInterface.sendErrorThroughPipe(MAIN_ERR_MESSAGE);
+	    	return;
+    	}
     	String modelFolder = args[0];
     	if (!(new File(modelFolder).isDirectory())) {
-    		throw new IllegalArgumentException("Argument 0 of the main method, '" + modelFolder + "' "
+			tfInterface.sendErrorThroughPipe("Argument 0 of the main method, '" + modelFolder + "' "
     				+ "should be an existing directory containing a Tensorflow 2 model.");
+	    	return;
     	}
     	
-    	PytorchJavaCPPInterface tfInterface = new PytorchJavaCPPInterface(false);
     	
-    	tfInterface.stdin = new PrintWriter(System.out);
-    	
-    	tfInterface.loadModel(modelFolder, modelFolder);
+    	try {
+			tfInterface.loadModel(modelFolder, modelFolder);
+		} catch (LoadModelException e) {
+			tfInterface.sendErrorThroughPipe(e.toString());
+	    	return;
+		}
 
     	List<Tensor<?>> inputList = new ArrayList<Tensor<?>>();
     	List<Tensor<?>> outputList = new ArrayList<Tensor<?>>();
@@ -470,7 +463,21 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     			outputList.add(MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap(arr)));
     		}
     	}
-    	tfInterface.run(inputList, outputList);
+    	
+    	if (inputList.size() == 0) {
+			tfInterface.sendErrorThroughPipe("Error running models: 0 inputs have been defined.");
+	    	return;
+    	} else if (outputList.size() == 0) {
+			tfInterface.sendErrorThroughPipe("Error running models: 0 outputs have been defined.");
+	    	return;
+    	}
+    	
+    	try {
+			tfInterface.run(inputList, outputList);
+		} catch (RunModelException e) {
+			tfInterface.sendErrorThroughPipe(e.toString());
+	    	return;
+		}
     	LinkedHashMap<String, Object> outMap = new LinkedHashMap<String, Object>();
     	int cc = 0;
     	for (Tensor<?> tt : outputList) {
@@ -479,9 +486,37 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     		ImgLib2ToMappedBuffer.build(tt, byteBuffer);
     		outMap.put(OUTPUT_PREFIX + cc, byteBuffer.array());
     	}
-    	Gson gson = new Gson();
-        String json = gson.toJson(outMap);
-        tfInterface.stdin.println(json);
-        tfInterface.stdin.flush();
+    	tfInterface.sendThroughPipe(outMap);
+    	tfInterface.closeModel();
     }
+    
+    private void sendErrorThroughPipe(String err) {
+    	LinkedHashMap<String, Object> outMap = new LinkedHashMap<String, Object>();
+    	outMap.put(ERROR_PREFIX, err);
+    	sendThroughPipe(outMap);
+    	closeModel();
+    }
+    
+    private void sendThroughPipe(Map<String, Object> map) {
+    	Gson gson = new Gson();
+        String json = gson.toJson(map);
+        stdin.println(json);
+        stdin.flush();
+    }
+	
+	public static boolean isJson(String jsonStr) {
+		try {
+			Gson gson = new Gson();
+	        Map<String, Object> map = gson.fromJson(jsonStr, new TypeToken<Map<String, Object>>() {}.getType());
+            return true; // The string has valid JSON format
+        } catch (Exception e) {
+            return false; // The string does not have valid JSON format
+        }
+	}
+	
+	public static Map<String, Object> decode(String jsonStr) {
+		Gson gson = new Gson();
+        Map<String, Object> map = gson.fromJson(jsonStr, new TypeToken<Map<String, Object>>() {}.getType());
+        return map;
+	}
 }
