@@ -24,29 +24,26 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.RandomAccessFile;
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.bytedeco.pytorch.IValue;
 import org.bytedeco.pytorch.IValueVector;
 import org.bytedeco.pytorch.JitModule;
 import org.bytedeco.pytorch.TensorVector;
+
+import com.google.gson.Gson;
 
 import io.bioimage.modelrunner.engine.DeepLearningEngineInterface;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
@@ -88,24 +85,19 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     /**
      * Idetifier for the files that contain the data of the inputs
      */
-    final private static String INPUT_FILE_PREFIX = "model_input";
-    
+    final private static String INPUT_PREFIX = "model_input";
     /**
      * Idetifier for the files that contain the data of the outputs
      */
-    final private static String OUTPUT_FILE_PREFIX = "model_output";
+    final private static String OUTPUT_PREFIX = "model_output";
+    /**
+     * Idetifier for the files that contain the data of the outputs
+     */
+    final private static String ERROR_PREFIX = "INTERPROCESSING_ERROR";
     /*
      * String that separates the prefic from the name from the data
      */
     final private static String SEPARATOR = "::--??";
-    /**
-     * Key for the inputs in the map that retrieves the file names for interprocess communication
-     */
-    final private static String INPUTS_MAP_KEY = "inputs";
-    /**
-     * Key for the outputs in the map that retrieves the file names for interprocess communication
-     */
-    final private static String OUTPUTS_MAP_KEY = "outputs";
 	/**
 	 * The Pytorch torchscript model loaded with JavaCpp
 	 */
@@ -118,6 +110,10 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
      * Source file that contains the torchscript model
      */
     private String modelSource;
+    /**
+     * Write to the stdout to send data to the other process
+     */
+	private PrintWriter stdin;
 
     
     /**
@@ -236,14 +232,18 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		try {
 			List<String> args = getProcessCommandsWithoutArgs();
 			for (Tensor tensor : inputTensors) {
-				args.add(INPUT_FILE_PREFIX + SEPARATOR + tensor2str(tensor));
+				args.add(INPUT_PREFIX + SEPARATOR + tensor2str(tensor));
 				}
 			for (Tensor tensor : outputTensors) {
-				args.add(OUTPUT_FILE_PREFIX + SEPARATOR + tensor2str(tensor));
+				args.add(OUTPUT_PREFIX + SEPARATOR + tensor2str(tensor));
 				}
 			ProcessBuilder builder = new ProcessBuilder(args);
 	        Process process = builder.start();
-	        if (process.waitFor() != 0)
+			BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
+	        while (true) {
+	        	break;
+	        }
+			if (process.waitFor() != 0)
 	    		throw new RunModelException("Error executing the Tensorflow 2 model in"
 	        			+ " a separate process. The process was not terminated correctly."
 	        			+ System.lineSeparator() + readProcessStringOutput(process));
@@ -453,22 +453,35 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     	
     	PytorchJavaCPPInterface tfInterface = new PytorchJavaCPPInterface(false);
     	
+    	tfInterface.stdin = new PrintWriter(System.out);
+    	
     	tfInterface.loadModel(modelFolder, modelFolder);
 
     	List<Tensor<?>> inputList = new ArrayList<Tensor<?>>();
     	List<Tensor<?>> outputList = new ArrayList<Tensor<?>>();
     	for (int i = 1; i < args.length; i ++) {
-    		if (args[i].startsWith(INPUT_FILE_PREFIX + SEPARATOR)){
-    			byte[] arr = args[i].substring((INPUT_FILE_PREFIX + SEPARATOR).length(),
+    		if (args[i].startsWith(INPUT_PREFIX + SEPARATOR)){
+    			byte[] arr = args[i].substring((INPUT_PREFIX + SEPARATOR).length(),
     							args[i].length()).getBytes(Charset.forName("ISO-8859-1"));
     			inputList.add(MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap(arr)));
-    		} else if (args[i].startsWith(OUTPUT_FILE_PREFIX + SEPARATOR)) {
-    			byte[] arr = args[i].substring((OUTPUT_FILE_PREFIX + SEPARATOR).length(),
+    		} else if (args[i].startsWith(OUTPUT_PREFIX + SEPARATOR)) {
+    			byte[] arr = args[i].substring((OUTPUT_PREFIX + SEPARATOR).length(),
 						args[i].length()).getBytes(Charset.forName("ISO-8859-1"));
     			outputList.add(MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap(arr)));
     		}
     	}
     	tfInterface.run(inputList, outputList);
-    	tfInterface.createTensorsForInterprocessing(outputList);
+    	LinkedHashMap<String, Object> outMap = new LinkedHashMap<String, Object>();
+    	int cc = 0;
+    	for (Tensor<?> tt : outputList) {
+    		long lenFile = ImgLib2ToMappedBuffer.findTotalLengthFile(tt);
+    		ByteBuffer byteBuffer = ByteBuffer.allocate((int) lenFile);
+    		ImgLib2ToMappedBuffer.build(tt, byteBuffer);
+    		outMap.put(OUTPUT_PREFIX + cc, byteBuffer.array());
+    	}
+    	Gson gson = new Gson();
+        String json = gson.toJson(outMap);
+        tfInterface.stdin.println(json);
+        tfInterface.stdin.flush();
     }
 }
