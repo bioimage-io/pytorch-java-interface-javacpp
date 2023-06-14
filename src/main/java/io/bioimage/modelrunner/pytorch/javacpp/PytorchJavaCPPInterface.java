@@ -260,9 +260,6 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		try {
 			List<String> args = getProcessCommandsWithoutArgs();
 			ProcessBuilder builder = new ProcessBuilder(args);
-	        process = builder.start();
-			BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
-			stdin = new PrintWriter(process.getOutputStream());
 			
 			LinkedHashMap<String, String> inMap = new LinkedHashMap<String, String>();
 			IntStream.range(0, inputTensors.size())
@@ -290,12 +287,16 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     				outputList.add(MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap(arr)));
     			}
     		}
-			
+
+	        process = builder.start();
+			BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
+			stdin = new PrintWriter(process.getOutputStream());
 			sendThroughPipe(inMap);
 			sendCheckpoint();
 			
 			String line = stdout.readLine();
 			while (process.isAlive() || line != null) {
+	    		Thread.sleep(100);
 				if (line == null)
 					continue;
 				if (!isJson(line))
@@ -489,6 +490,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     	Scanner scanner = new Scanner(System.in);
     	try {
 	    	while (true) {
+	    		Thread.sleep(100);
 	    		String line = scanner.nextLine();
 	    		if (!isJson(line))
 	    			continue;
