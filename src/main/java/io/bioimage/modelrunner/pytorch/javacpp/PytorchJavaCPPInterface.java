@@ -271,6 +271,26 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 			IntStream.range(0, outputTensors.size())
 				.forEach(i -> inMap.put(OUTPUT_PREFIX + i, 
 						new String(Base64.getEncoder().encode(tensor2bytes(outputTensors.get(i))))));
+			String jsonLine = encode(inMap);
+    		if (!isJson(jsonLine))
+    			System.out.print(interprocessing);
+    		Map<String, String> map =  decode(jsonLine);
+    		boolean end = map.keySet().stream()
+    				.filter(kk -> kk.equals(CHECK)).findFirst().orElse(null) != null;
+    		if (end) {System.out.print(interprocessing);}
+
+        	List<Tensor<?>> inputList = new ArrayList<Tensor<?>>();
+        	List<Tensor<?>> outputList = new ArrayList<Tensor<?>>();
+    		for (String kk : map.keySet()) {
+    			if (kk.startsWith(INPUT_PREFIX)) {
+					byte[] arr = Base64.getDecoder().decode(map.get(kk).getBytes());
+    				inputList.add(MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap(arr)));
+    			} else if (kk.startsWith(OUTPUT_PREFIX)) {
+					byte[] arr = Base64.getDecoder().decode(map.get(kk).getBytes());
+    				outputList.add(MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap(arr)));
+    			}
+    		}
+			
 			sendThroughPipe(inMap);
 			sendCheckpoint();
 			
@@ -291,6 +311,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		    		    .forEach(tensor -> tensor.setData((RandomAccessibleInterval) tt.getData()));
 					}
 				}
+				line = stdout.readLine();
 			}
 
 		} catch (RunModelException e) {
@@ -557,5 +578,11 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		Gson gson = new Gson();
         Map<String, String> map = gson.fromJson(jsonStr, new TypeToken<Map<String, String>>() {}.getType());
         return map;
+	}
+	
+	public static String encode(Map<String, String> map) {
+    	Gson gson = new Gson();
+        String json = gson.toJson(map);
+        return json;
 	}
 }
