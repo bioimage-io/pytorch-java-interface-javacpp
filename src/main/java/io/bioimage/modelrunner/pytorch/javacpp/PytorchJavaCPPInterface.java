@@ -73,7 +73,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	 */
     public PytorchJavaCPPInterface()
     {
-        System.setProperty("org.bytedeco.openblas.load", "mkl");
+        //System.setProperty("org.bytedeco.openblas.load", "mkl");
     }
     
     public static void main(String[] args) throws LoadModelException {
