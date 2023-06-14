@@ -34,10 +34,14 @@ import java.nio.charset.Charset;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
+import java.util.stream.IntStream;
 
 import org.bytedeco.pytorch.IValue;
 import org.bytedeco.pytorch.IValueVector;
@@ -45,6 +49,7 @@ import org.bytedeco.pytorch.JitModule;
 import org.bytedeco.pytorch.TensorVector;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import io.bioimage.modelrunner.engine.DeepLearningEngineInterface;
@@ -102,6 +107,10 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
      */
     final private static String SEPARATOR = "::--??";
     /**
+     * Checkpoint to know that the connexion is fine
+     */
+    final private static String CHECK = "check";
+    /**
      * Error message of the main method
      */
     final private static String MAIN_ERR_MESSAGE = "Error exectuting Pytorch, "
@@ -131,6 +140,10 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
      * Write to the stdout to send data to the other process
      */
 	private PrintWriter stdin;
+	/**
+	 * Subprocess where the model is executed
+	 */
+	private Process process;
 
     
     /**
@@ -247,16 +260,18 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	public void runInterprocessing(List<Tensor<?>> inputTensors, List<Tensor<?>> outputTensors) throws RunModelException {
 		try {
 			List<String> args = getProcessCommandsWithoutArgs();
-			for (Tensor tensor : inputTensors) {
-				args.add(INPUT_PREFIX + SEPARATOR + tensor2str(tensor));
-				}
-			for (Tensor tensor : outputTensors) {
-				args.add(OUTPUT_PREFIX + SEPARATOR + tensor2str(tensor));
-				}
 			ProcessBuilder builder = new ProcessBuilder(args);
-	        Process process = builder.start();
+	        process = builder.start();
 			BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
+			stdin = new PrintWriter(process.getOutputStream());
 			
+			LinkedHashMap<String, Object> inMap = new LinkedHashMap<String, Object>();
+			IntStream.range(0, inputTensors.size())
+				.forEach(i -> inMap.put(INPUT_PREFIX + i, tensor2bytes(inputTensors.get(i))));
+			IntStream.range(0, outputTensors.size())
+				.forEach(i -> inMap.put(OUTPUT_PREFIX + i, tensor2bytes(outputTensors.get(i))));
+			sendThroughPipe(inMap);
+			sendCheckpoint();
 			
 			String line = stdout.readLine();
 			while (process.isAlive() || line != null) {
@@ -269,7 +284,8 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 					if (key.equals(ERROR_PREFIX))
 						throw new RunModelException((String) response.get(key));
 					else if (key.startsWith(OUTPUT_PREFIX)) {
-		    			Tensor tt = MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap((byte[]) response.get(key)));
+						((ArrayList<Byte>) response.get(key)).toArray(new byte[((ArrayList<Byte>) response.get(key)).size()]);
+		    			Tensor tt = MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap());
 		    			outputTensors.stream().filter(tensor -> tensor.getName().equals(tt.getName()))
 		    		    .forEach(tensor -> tensor.setData((RandomAccessibleInterval) tt.getData()));
 					}
@@ -290,13 +306,12 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
      * the separate process in MacOS Intel and Windows systems
      * @param tensors
      * 	list of tensors to be sent
-     * @throws RunModelException if there is any error converting the tensors
      */
-	private String tensor2str(Tensor<?> tensor) throws RunModelException{
+	private byte[] tensor2bytes(Tensor<?> tensor) {
 		long lenFile = ImgLib2ToMappedBuffer.findTotalLengthFile(tensor);
 		ByteBuffer byteBuffer = ByteBuffer.allocate((int) lenFile);
 		ImgLib2ToMappedBuffer.build(tensor, byteBuffer);
-		return new String(byteBuffer.array(), Charset.forName("ISO-8859-1"));
+		return byteBuffer.array();
 	}
 	
 	/**
@@ -376,6 +391,8 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		model.deallocate();
 		if (stdin != null)
 			stdin.close();
+		if (process != null)
+			process.destroyForcibly();
 	}
 
 	/**
@@ -428,18 +445,16 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     	// Unpack the args needed   	
     	PytorchJavaCPPInterface tfInterface = new PytorchJavaCPPInterface(false);
     	tfInterface.stdin = new PrintWriter(System.out);
-    	if (args.length < 3) {
+    	if (args.length != 1) {
 			tfInterface.sendErrorThroughPipe(MAIN_ERR_MESSAGE);
 	    	return;
     	}
     	String modelFolder = args[0];
-    	if (!(new File(modelFolder).isDirectory())) {
+    	if (!(new File(modelFolder).isFile())) {
 			tfInterface.sendErrorThroughPipe("Argument 0 of the main method, '" + modelFolder + "' "
     				+ "should be an existing directory containing a Tensorflow 2 model.");
 	    	return;
     	}
-    	
-    	
     	try {
 			tfInterface.loadModel(modelFolder, modelFolder);
 		} catch (LoadModelException e) {
@@ -449,17 +464,31 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 
     	List<Tensor<?>> inputList = new ArrayList<Tensor<?>>();
     	List<Tensor<?>> outputList = new ArrayList<Tensor<?>>();
-    	for (int i = 1; i < args.length; i ++) {
-    		if (args[i].startsWith(INPUT_PREFIX + SEPARATOR)){
-    			byte[] arr = args[i].substring((INPUT_PREFIX + SEPARATOR).length(),
-    							args[i].length()).getBytes(Charset.forName("ISO-8859-1"));
-    			inputList.add(MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap(arr)));
-    		} else if (args[i].startsWith(OUTPUT_PREFIX + SEPARATOR)) {
-    			byte[] arr = args[i].substring((OUTPUT_PREFIX + SEPARATOR).length(),
-						args[i].length()).getBytes(Charset.forName("ISO-8859-1"));
-    			outputList.add(MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap(arr)));
-    		}
+    	Scanner scanner = new Scanner(System.in);
+    	try {
+	    	while (true) {
+	    		String line = scanner.nextLine();
+	    		if (!isJson(line))
+	    			continue;
+	    		Map<String, Object> map =  decode(line);
+	    		boolean end = map.keySet().stream()
+	    				.filter(kk -> kk.equals(CHECK)).findFirst().orElse(null) != null;
+	    		if (end) {break;}
+	    		
+	    		for (String kk : map.keySet()) {
+	    			if (kk.startsWith(INPUT_PREFIX))
+	    				inputList.add(MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap((byte[]) map.get(kk))));
+	    			else if (kk.startsWith(OUTPUT_PREFIX))
+	    				outputList.add(MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap((byte[]) map.get(kk))));
+	    		}
+	    	}
+    	} catch (Exception ex) {
+    		scanner.close();
+    		tfInterface.sendErrorThroughPipe("Error retrieving the input and output tensors."
+    				 + System.lineSeparator() + ex.toString());
+	    	return;
     	}
+		scanner.close();
     	
     	if (inputList.size() == 0) {
 			tfInterface.sendErrorThroughPipe("Error running models: 0 inputs have been defined.");
@@ -494,9 +523,24 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     	closeModel();
     }
     
+    private void sendCheckpoint() {
+    	Map<String, String> map = new HashMap<String, String>();
+    	map.put(CHECK, CHECK);
+    	Gson gson = new Gson();
+        String json = gson.toJson(map);
+        stdin.println(json);
+        stdin.flush();
+    }
+    
     private void sendThroughPipe(Map<String, Object> map) {
     	Gson gson = new Gson();
         String json = gson.toJson(map);
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(byte[].class, new ByteArrayTypeAdapter())
+                .create();
+
+        // Encode the map to JSON
+        String json = gson.toJson(data);
         stdin.println(json);
         stdin.flush();
     }
