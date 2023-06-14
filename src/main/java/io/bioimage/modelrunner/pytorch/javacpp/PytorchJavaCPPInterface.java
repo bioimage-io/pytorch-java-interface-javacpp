@@ -26,11 +26,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Type;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
@@ -49,14 +49,6 @@ import org.bytedeco.pytorch.JitModule;
 import org.bytedeco.pytorch.TensorVector;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
 
 import io.bioimage.modelrunner.engine.DeepLearningEngineInterface;
@@ -272,11 +264,13 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 			BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
 			stdin = new PrintWriter(process.getOutputStream());
 			
-			LinkedHashMap<String, Object> inMap = new LinkedHashMap<String, Object>();
+			LinkedHashMap<String, String> inMap = new LinkedHashMap<String, String>();
 			IntStream.range(0, inputTensors.size())
-				.forEach(i -> inMap.put(INPUT_PREFIX + i, tensor2bytes(inputTensors.get(i))));
+				.forEach(i -> inMap.put(INPUT_PREFIX + i, 
+						new String(Base64.getEncoder().encode(tensor2bytes(inputTensors.get(i))))));
 			IntStream.range(0, outputTensors.size())
-				.forEach(i -> inMap.put(OUTPUT_PREFIX + i, tensor2bytes(outputTensors.get(i))));
+				.forEach(i -> inMap.put(OUTPUT_PREFIX + i, 
+						new String(Base64.getEncoder().encode(tensor2bytes(outputTensors.get(i))))));
 			sendThroughPipe(inMap);
 			sendCheckpoint();
 			
@@ -286,12 +280,12 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 					continue;
 				if (!isJson(line))
 					continue;
-				Map<String, Object> response = decode(line);
+				Map<String, String> response = decode(line);
 				for (String key : response.keySet()) {
 					if (key.equals(ERROR_PREFIX))
-						throw new RunModelException((String) response.get(key));
+						throw new RunModelException(response.get(key));
 					else if (key.startsWith(OUTPUT_PREFIX)) {
-						byte[] arr = Base64.getDecoder().decode((String) response.get(key));
+						byte[] arr = Base64.getDecoder().decode(response.get(key).getBytes());
 		    			Tensor tt = MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap(arr));
 		    			outputTensors.stream().filter(tensor -> tensor.getName().equals(tt.getName()))
 		    		    .forEach(tensor -> tensor.setData((RandomAccessibleInterval) tt.getData()));
@@ -477,20 +471,20 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	    		String line = scanner.nextLine();
 	    		if (!isJson(line))
 	    			continue;
-	    		Map<String, Object> map =  decode(line);
+	    		Map<String, String> map =  decode(line);
 	    		boolean end = map.keySet().stream()
 	    				.filter(kk -> kk.equals(CHECK)).findFirst().orElse(null) != null;
 	    		if (end) {break;}
 	    		
 	    		for (String kk : map.keySet()) {
 	    			if (kk.startsWith(INPUT_PREFIX)) {
-						byte[] arr = Base64.getDecoder().decode((String) map.get(kk));
+						byte[] arr = Base64.getDecoder().decode(map.get(kk).getBytes());
 	    				inputList.add(MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap(arr)));
 	    			} else if (kk.startsWith(OUTPUT_PREFIX)) {
-						byte[] arr = Base64.getDecoder().decode((String) map.get(kk));
+						byte[] arr = Base64.getDecoder().decode(map.get(kk).getBytes());
 	    				outputList.add(MappedBufferToImgLib2.buildTensor(ByteBuffer.wrap(arr)));
 	    			}
-    			}
+	    		}
 	    	}
     	} catch (Exception ex) {
     		scanner.close();
@@ -514,20 +508,20 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 			tfInterface.sendErrorThroughPipe(e.toString());
 	    	return;
 		}
-    	LinkedHashMap<String, Object> outMap = new LinkedHashMap<String, Object>();
+    	LinkedHashMap<String, String> outMap = new LinkedHashMap<String, String>();
     	int cc = 0;
     	for (Tensor<?> tt : outputList) {
     		long lenFile = ImgLib2ToMappedBuffer.findTotalLengthFile(tt);
     		ByteBuffer byteBuffer = ByteBuffer.allocate((int) lenFile);
     		ImgLib2ToMappedBuffer.build(tt, byteBuffer);
-    		outMap.put(OUTPUT_PREFIX + cc, byteBuffer.array());
+    		outMap.put(OUTPUT_PREFIX + cc, new String(Base64.getEncoder().encode(byteBuffer.array())));
     	}
     	tfInterface.sendThroughPipe(outMap);
     	tfInterface.closeModel();
     }
     
     private void sendErrorThroughPipe(String err) {
-    	LinkedHashMap<String, Object> outMap = new LinkedHashMap<String, Object>();
+    	LinkedHashMap<String, String> outMap = new LinkedHashMap<String, String>();
     	outMap.put(ERROR_PREFIX, err);
     	sendThroughPipe(outMap);
     	closeModel();
@@ -542,10 +536,8 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
         stdin.flush();
     }
     
-    private void sendThroughPipe(Map<String, Object> map) {
-    	Gson gson = new GsonBuilder()
-                .registerTypeAdapter(byte[].class, new ByteArrayTypeAdapter())
-                .create();
+    private void sendThroughPipe(Map<String, String> map) {
+    	Gson gson = new Gson();
         String json = gson.toJson(map);
         stdin.println(json);
         stdin.flush();
@@ -554,32 +546,16 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	public static boolean isJson(String jsonStr) {
 		try {
 			Gson gson = new Gson();
-	        Map<String, Object> map = gson.fromJson(jsonStr, new TypeToken<Map<String, Object>>() {}.getType());
+	        Map<String, Object> map = gson.fromJson(jsonStr, new TypeToken<Map<String, String>>() {}.getType());
             return true; // The string has valid JSON format
         } catch (Exception e) {
             return false; // The string does not have valid JSON format
         }
 	}
 	
-	public static Map<String, Object> decode(String jsonStr) {
-    	Gson gson = new GsonBuilder()
-                .registerTypeAdapter(byte[].class, new ByteArrayTypeAdapter())
-                .create();
-        Map<String, Object> map = gson.fromJson(jsonStr, new TypeToken<Map<String, Object>>(){}.getType());
+	public static Map<String, String> decode(String jsonStr) {
+		Gson gson = new Gson();
+        Map<String, String> map = gson.fromJson(jsonStr, new TypeToken<Map<String, String>>() {}.getType());
         return map;
-	}
-
-	private static class ByteArrayTypeAdapter implements JsonSerializer<byte[]>, JsonDeserializer<byte[]> {
-	    @Override
-	    public JsonElement serialize(byte[] src, Type typeOfSrc, JsonSerializationContext context) {
-	        String encodedString = Base64.getEncoder().encodeToString(src);
-	        return new JsonPrimitive(encodedString);
-	    }
-
-	    @Override
-	    public byte[] deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-	        String encodedString = json.getAsString();
-	        return Base64.getDecoder().decode(encodedString);
-	    }
 	}
 }
