@@ -2,7 +2,7 @@
 
 # dl-modelrunner-java: pytorch-javacpp
 
-[JAR file](https://maven.scijava.org/service/local/artifact/maven/redirect?r=releases&g=io.bioimage&a=dl-modelrunner-pytorch-javacpp&v=0.2.0&e=jar)
+[JAR file](https://maven.scijava.org/service/local/artifact/maven/redirect?r=releases&g=io.bioimage&a=dl-modelrunner-pytorch-javacpp&v=0.3.0&e=jar)
 
 
 To use with maven:
