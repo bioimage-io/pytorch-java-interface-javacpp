@@ -25,8 +25,7 @@ import io.bioimage.modelrunner.utils.IndexingUtils;
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
-import net.imglib2.type.NativeType;
-import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.Type;
 import net.imglib2.type.numeric.integer.ByteType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -53,17 +52,16 @@ public class JavaCPPTensorBuilder {
 	 * @return The {@link org.bytedeco.pytorch.Tensor} built from the {@link Tensor}.
 	 * @throws IllegalArgumentException if the tensor type is not supported
 	 */
-    public static < T extends RealType< T > & NativeType< T > >
-    	org.bytedeco.pytorch.Tensor build(Tensor<T> tensor) throws IllegalArgumentException
+    public static org.bytedeco.pytorch.Tensor build(Tensor tensor) throws IllegalArgumentException
     {
     	if (Util.getTypeFromInterval(tensor.getData()) instanceof ByteType) {
-            return buildFromTensorByte( (RandomAccessibleInterval<ByteType>) tensor.getData());
+            return buildFromTensorByte( tensor.getData());
     	} else if (Util.getTypeFromInterval(tensor.getData()) instanceof IntType) {
-            return buildFromTensorInt( (RandomAccessibleInterval<IntType>) tensor.getData());
+            return buildFromTensorInt( tensor.getData());
     	} else if (Util.getTypeFromInterval(tensor.getData()) instanceof FloatType) {
-            return buildFromTensorFloat( (RandomAccessibleInterval<FloatType>) tensor.getData());
+            return buildFromTensorFloat( tensor.getData());
     	} else if (Util.getTypeFromInterval(tensor.getData()) instanceof DoubleType) {
-            return buildFromTensorDouble( (RandomAccessibleInterval<DoubleType>) tensor.getData());
+            return buildFromTensorDouble( tensor.getData());
     	} else {
             throw new IllegalArgumentException("Unsupported tensor type: " + tensor.getDataType());
     	}
@@ -79,8 +77,7 @@ public class JavaCPPTensorBuilder {
 	 * @return The {@link org.bytedeco.pytorch.Tensor} built from the {@link RandomAccessibleInterval}.
 	 * @throws IllegalArgumentException if the {@link RandomAccessibleInterval} is not supported
 	 */
-    public static < T extends RealType< T > & NativeType< T > >
-    	org.bytedeco.pytorch.Tensor build(RandomAccessibleInterval<T> tensor) throws IllegalArgumentException
+    public static <T extends Type<T>> org.bytedeco.pytorch.Tensor build(RandomAccessibleInterval<T> tensor) throws IllegalArgumentException
     {
     	if (Util.getTypeFromInterval(tensor) instanceof ByteType) {
             return buildFromTensorByte( (RandomAccessibleInterval<ByteType>) tensor);
