@@ -25,7 +25,8 @@ import io.bioimage.modelrunner.utils.IndexingUtils;
 import net.imglib2.Cursor;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
-import net.imglib2.type.Type;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.ByteType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.LongType;
@@ -53,7 +54,8 @@ public class ImgLib2Builder {
 	 * @throws IllegalArgumentException if the dataype of the {@link org.bytedeco.pytorch.Tensor} 
 	 * is not supported
 	 */
-    public static <T extends Type<T>> Img<T> build(org.bytedeco.pytorch.Tensor tensor) throws IllegalArgumentException
+    public static < T extends RealType< T > & NativeType< T > >
+    	Img<T> build(org.bytedeco.pytorch.Tensor tensor) throws IllegalArgumentException
     {
         if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Byte)
     			|| tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Char)) {
