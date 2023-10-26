@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>35.1.1</version>
+		<version>37.0.0</version>
 		<relativePath />
 	</parent>
 
@@ -126,7 +126,7 @@
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
 		<pytorch-javacpp.version>2.0.1-1.5.9</pytorch-javacpp.version>
-		<dl-modelrunner.version>0.4.0</dl-modelrunner.version>
+		<dl-modelrunner.version>0.4.1</dl-modelrunner.version>
 		<cuda-javacpp.version>11.8-8.6-1.5.8</cuda-javacpp.version>
 		<mkl-javacpp.version>2023.1-1.5.9</mkl-javacpp.version>
 	</properties>
