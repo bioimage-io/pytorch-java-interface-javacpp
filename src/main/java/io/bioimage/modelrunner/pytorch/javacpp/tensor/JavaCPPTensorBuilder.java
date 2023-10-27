@@ -100,6 +100,7 @@ public class JavaCPPTensorBuilder {
 	 */
     private static org.bytedeco.pytorch.Tensor buildFromTensorByte(RandomAccessibleInterval<ByteType> tensor)
     {
+		long[] ogShape = tensor.dimensionsAsLongArray();
 		tensor = Utils.transpose(tensor);
 		PrimitiveBlocks< ByteType > blocks = PrimitiveBlocks.of( tensor );
 		long[] tensorShape = tensor.dimensionsAsLongArray();
@@ -110,7 +111,7 @@ public class JavaCPPTensorBuilder {
 		for (int i = 0; i < sArr.length; i ++)
 			sArr[i] = (int) tensorShape[i];
 		blocks.copy( new long[tensorShape.length], flatArr, sArr );
-	 	org.bytedeco.pytorch.Tensor ndarray = org.bytedeco.pytorch.Tensor.create(flatArr, tensorShape);
+	 	org.bytedeco.pytorch.Tensor ndarray = org.bytedeco.pytorch.Tensor.create(flatArr, ogShape);
 	 	return ndarray;
 	}
 
@@ -124,6 +125,7 @@ public class JavaCPPTensorBuilder {
 	 */
     private static org.bytedeco.pytorch.Tensor buildFromTensorInt(RandomAccessibleInterval<IntType> tensor)
     {
+		long[] ogShape = tensor.dimensionsAsLongArray();
 		tensor = Utils.transpose(tensor);
 		PrimitiveBlocks< IntType > blocks = PrimitiveBlocks.of( tensor );
 		long[] tensorShape = tensor.dimensionsAsLongArray();
@@ -134,7 +136,7 @@ public class JavaCPPTensorBuilder {
 		for (int i = 0; i < sArr.length; i ++)
 			sArr[i] = (int) tensorShape[i];
 		blocks.copy( new long[tensorShape.length], flatArr, sArr );
-		org.bytedeco.pytorch.Tensor ndarray = org.bytedeco.pytorch.Tensor.create(flatArr, tensorShape);
+		org.bytedeco.pytorch.Tensor ndarray = org.bytedeco.pytorch.Tensor.create(flatArr, ogShape);
 	 	return ndarray;
     }
 
@@ -148,6 +150,7 @@ public class JavaCPPTensorBuilder {
 	 */
     private static org.bytedeco.pytorch.Tensor buildFromTensorFloat(RandomAccessibleInterval<FloatType> tensor)
     {
+		long[] ogShape = tensor.dimensionsAsLongArray();
 		tensor = Utils.transpose(tensor);
 		PrimitiveBlocks< FloatType > blocks = PrimitiveBlocks.of( tensor );
 		long[] tensorShape = tensor.dimensionsAsLongArray();
@@ -158,7 +161,7 @@ public class JavaCPPTensorBuilder {
 		for (int i = 0; i < sArr.length; i ++)
 			sArr[i] = (int) tensorShape[i];
 		blocks.copy( new long[tensorShape.length], flatArr, sArr );
-		org.bytedeco.pytorch.Tensor ndarray = org.bytedeco.pytorch.Tensor.create(flatArr, tensorShape);
+		org.bytedeco.pytorch.Tensor ndarray = org.bytedeco.pytorch.Tensor.create(flatArr, ogShape);
 	 	return ndarray;
     }
 
@@ -172,6 +175,7 @@ public class JavaCPPTensorBuilder {
 	 */
     private static org.bytedeco.pytorch.Tensor buildFromTensorDouble(RandomAccessibleInterval<DoubleType> tensor)
     {
+		long[] ogShape = tensor.dimensionsAsLongArray();
 		tensor = Utils.transpose(tensor);
 		PrimitiveBlocks< DoubleType > blocks = PrimitiveBlocks.of( tensor );
 		long[] tensorShape = tensor.dimensionsAsLongArray();
@@ -182,7 +186,7 @@ public class JavaCPPTensorBuilder {
 		for (int i = 0; i < sArr.length; i ++)
 			sArr[i] = (int) tensorShape[i];
 		blocks.copy( new long[tensorShape.length], flatArr, sArr );
-		org.bytedeco.pytorch.Tensor ndarray = org.bytedeco.pytorch.Tensor.create(flatArr, tensorShape);
+		org.bytedeco.pytorch.Tensor ndarray = org.bytedeco.pytorch.Tensor.create(flatArr, ogShape);
 	 	return ndarray;
     }
 }
