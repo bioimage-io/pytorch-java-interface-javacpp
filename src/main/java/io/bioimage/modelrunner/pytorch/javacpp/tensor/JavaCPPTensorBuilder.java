@@ -110,7 +110,7 @@ public class JavaCPPTensorBuilder {
 		int[] sArr = new int[tensorShape.length];
 		for (int i = 0; i < sArr.length; i ++)
 			sArr[i] = (int) tensorShape[i];
-		blocks.copy( new long[tensorShape.length], flatArr, sArr );
+		blocks.copy( tensor.minAsLongArray(), flatArr, sArr );
 	 	org.bytedeco.pytorch.Tensor ndarray = org.bytedeco.pytorch.Tensor.create(flatArr, ogShape);
 	 	return ndarray;
 	}
@@ -135,7 +135,7 @@ public class JavaCPPTensorBuilder {
 		int[] sArr = new int[tensorShape.length];
 		for (int i = 0; i < sArr.length; i ++)
 			sArr[i] = (int) tensorShape[i];
-		blocks.copy( new long[tensorShape.length], flatArr, sArr );
+		blocks.copy( tensor.minAsLongArray(), flatArr, sArr );
 		org.bytedeco.pytorch.Tensor ndarray = org.bytedeco.pytorch.Tensor.create(flatArr, ogShape);
 	 	return ndarray;
     }
@@ -160,7 +160,7 @@ public class JavaCPPTensorBuilder {
 		int[] sArr = new int[tensorShape.length];
 		for (int i = 0; i < sArr.length; i ++)
 			sArr[i] = (int) tensorShape[i];
-		blocks.copy( new long[tensorShape.length], flatArr, sArr );
+		blocks.copy( tensor.minAsLongArray(), flatArr, sArr );
 		org.bytedeco.pytorch.Tensor ndarray = org.bytedeco.pytorch.Tensor.create(flatArr, ogShape);
 	 	return ndarray;
     }
@@ -185,7 +185,7 @@ public class JavaCPPTensorBuilder {
 		int[] sArr = new int[tensorShape.length];
 		for (int i = 0; i < sArr.length; i ++)
 			sArr[i] = (int) tensorShape[i];
-		blocks.copy( new long[tensorShape.length], flatArr, sArr );
+		blocks.copy( tensor.minAsLongArray(), flatArr, sArr );
 		org.bytedeco.pytorch.Tensor ndarray = org.bytedeco.pytorch.Tensor.create(flatArr, ogShape);
 	 	return ndarray;
     }
