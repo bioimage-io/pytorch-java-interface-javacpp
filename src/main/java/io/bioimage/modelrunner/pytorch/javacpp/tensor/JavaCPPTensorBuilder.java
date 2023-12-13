@@ -20,18 +20,16 @@
  */
 package io.bioimage.modelrunner.pytorch.javacpp.tensor;
 
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import io.bioimage.modelrunner.tensor.Tensor;
 import io.bioimage.modelrunner.tensor.Utils;
+import io.bioimage.modelrunner.utils.CommonUtils;
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.blocks.PrimitiveBlocks;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.integer.ByteType;
 import net.imglib2.type.numeric.integer.IntType;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
