@@ -131,7 +131,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     public static < T extends RealType< T > & NativeType< T > > void main(String[] args) throws LoadModelException, RunModelException {
     	if (args.length == 0) {
     		
-	    	String modelFolder = "/home/carlos/git/deep-icy/models/Neuron Segmentation in EM (Membrane Prediction)_30102023_192607";
+	    	String modelFolder = "/home/carlos/git/deep-icy/models/Neuron Segmentation in EM (Membrane Prediction)_07122023_193930";
 	    	String modelSourc = modelFolder + "/weights-torchscript.pt";
 	    	PytorchJavaCPPInterface pi = new PytorchJavaCPPInterface();
 	    	pi.loadModel(modelFolder, modelSourc);

@@ -81,6 +81,8 @@ public class JavaCPPTensorBuilder {
             return buildFromTensorFloat(Cast.unchecked(tensor));
     	} else if (Util.getTypeFromInterval(tensor) instanceof DoubleType) {
             return buildFromTensorDouble(Cast.unchecked(tensor));
+    	} else if (Util.getTypeFromInterval(tensor) instanceof FloatType) {
+            return buildFromTensorFloat(Cast.unchecked(tensor));
     	} else {
             throw new IllegalArgumentException("Unsupported tensor type: " + Util.getTypeFromInterval(tensor).getClass().toString());
     	}
