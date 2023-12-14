@@ -28,7 +28,6 @@ import io.bioimage.modelrunner.utils.CommonUtils;
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
-import net.imglib2.type.Type;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.ByteType;
 import net.imglib2.type.numeric.integer.IntType;
@@ -59,7 +58,7 @@ public class JavaCPPTensorBuilder {
 	 */
     public static < T extends RealType< T > & NativeType< T > > org.bytedeco.pytorch.Tensor build(Tensor<T> tensor) throws IllegalArgumentException
     {
-    	return build(tensor.getData());
+    	return buildFromRai(tensor.getData());
     }
 
 	/**
@@ -72,7 +71,7 @@ public class JavaCPPTensorBuilder {
 	 * @return The {@link org.bytedeco.pytorch.Tensor} built from the {@link RandomAccessibleInterval}.
 	 * @throws IllegalArgumentException if the {@link RandomAccessibleInterval} is not supported
 	 */
-    public static < T extends RealType< T > & NativeType< T > > org.bytedeco.pytorch.Tensor build(RandomAccessibleInterval<T> tensor) throws IllegalArgumentException
+    public static < T extends RealType< T > & NativeType< T > > org.bytedeco.pytorch.Tensor buildFromRai(RandomAccessibleInterval<T> tensor) throws IllegalArgumentException
     {
     	if (Util.getTypeFromInterval(tensor) instanceof ByteType) {
             return buildFromTensorByte(Cast.unchecked(tensor));

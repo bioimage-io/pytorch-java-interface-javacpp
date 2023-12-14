@@ -131,8 +131,8 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     public static < T extends RealType< T > & NativeType< T > > void main(String[] args) throws LoadModelException, RunModelException {
     	if (args.length == 0) {
     		
-	    	String modelFolder = "C:\\Users\\angel\\OneDrive\\Documentos\\pasteur\\git\\deep-icy\\models\\Neuron Segmentation in EM (Membrane Prediction)_30102023_192607";
-	    	String modelSourc = modelFolder + "\\weights-torchscript.pt";
+	    	String modelFolder = "/home/carlos/git/deep-icy/models/Neuron Segmentation in EM (Membrane Prediction)_30102023_192607";
+	    	String modelSourc = modelFolder + "/weights-torchscript.pt";
 	    	PytorchJavaCPPInterface pi = new PytorchJavaCPPInterface();
 	    	pi.loadModel(modelFolder, modelSourc);
 	    	RandomAccessibleInterval<FloatType> rai = ArrayImgs.floats(new long[] {1, 1, 16, 144, 144});
@@ -176,7 +176,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	            HashMap<String, Object> map = gson.fromJson(args[i], mapType);
 	            if ((boolean) map.get(IS_INPUT_KEY)) {
 	            	RandomAccessibleInterval<T> rai = SharedMemoryArray.buildImgLib2FromNumpyLikeSHMA((String) map.get(MEM_NAME_KEY));
-	            	inputsVector.put(new IValue(JavaCPPTensorBuilder.build(rai))); 
+	            	inputsVector.put(new IValue(JavaCPPTensorBuilder.buildFromRai(rai))); 
 	            }
 			}
 	        // Run model
