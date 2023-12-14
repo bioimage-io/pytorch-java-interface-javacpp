@@ -1,9 +1,9 @@
 /*-
  * #%L
  * This project complements the DL-model runner acting as the engine that works loading models 
- * 	and making inference with Java API for Pytorch.
+ * 	and making inference with Java API for Pytorch. This project uses Pytorch with thanks to JavaCPP
  * %%
- * Copyright (C) 2022 - 2023 Institut Pasteur and BioImage.IO developers.
+ * Copyright (C) 2023 Institut Pasteur and BioImage.IO developers.
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
