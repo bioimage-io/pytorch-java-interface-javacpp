@@ -131,13 +131,13 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     public static < T extends RealType< T > & NativeType< T > > void main(String[] args) throws LoadModelException, RunModelException {
     	if (args.length == 0) {
     		
-	    	String modelFolder = "/home/carlos/git/deep-icy/models/Neuron Segmentation in EM (Membrane Prediction)_07122023_193930";
+	    	String modelFolder = "/Users/Cgarcia/git/deep-icy/models/nse";
 	    	String modelSourc = modelFolder + "/weights-torchscript.pt";
 	    	PytorchJavaCPPInterface pi = new PytorchJavaCPPInterface();
 	    	pi.loadModel(modelFolder, modelSourc);
 	    	RandomAccessibleInterval<FloatType> rai = ArrayImgs.floats(new long[] {1, 1, 16, 144, 144});
 	    	Tensor<?> inp = Tensor.build("aa", "bczyx", rai);
-	    	Tensor<?> out = Tensor.buildEmptyTensor("oo", "bczyx");
+	    	Tensor<?> out = Tensor.build("oo", "bczyx", rai);
 	    	List<Tensor<?>> ins = new ArrayList<Tensor<?>>();
 	    	List<Tensor<?>> ous = new ArrayList<Tensor<?>>();
 	    	ins.add(inp);
@@ -449,10 +449,16 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 
         String modelrunnerPath = getPathFromClass(DeepLearningEngineInterface.class);
         String imglib2Path = getPathFromClass(NativeType.class);
+        String gsonPath = getPathFromClass(Gson.class);
+        String jnaPath = getPathFromClass(com.sun.jna.Library.class);
+        String jnaPlatformPath = getPathFromClass(com.sun.jna.platform.FileUtils.class);
         if (modelrunnerPath == null || (modelrunnerPath.endsWith("DeepLearningEngineInterface.class") 
         		&& !modelrunnerPath.contains(File.pathSeparator)))
         	modelrunnerPath = System.getProperty("java.class.path");
         String classpath =  modelrunnerPath + File.pathSeparator + imglib2Path + File.pathSeparator;
+        classpath =  classpath + gsonPath + File.pathSeparator;
+        classpath =  classpath + jnaPath + File.pathSeparator;
+        classpath =  classpath + jnaPlatformPath + File.pathSeparator;
         ProtectionDomain protectionDomain = PytorchJavaCPPInterface.class.getProtectionDomain();
         String codeSource = protectionDomain.getCodeSource().getLocation().getPath();
         String f_name = URLDecoder.decode(codeSource, StandardCharsets.UTF_8.toString());
