@@ -106,6 +106,10 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	private static final String DTYPE_KEY = "dtype";
 	private static final String IS_INPUT_KEY = "isInput";
 	private static final String MEM_NAME_KEY = "memoryName";
+	/**
+	 * Name without vesion of the JAR created for this library
+	 */
+	private static final String JAR_FILE_NAME = "dl-modelrunner-pytorch-javacpp";
 
 	/**
 	 * Constructor for the interface. It is going to be called from the 
@@ -463,6 +467,8 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
         String codeSource = protectionDomain.getCodeSource().getLocation().getPath();
         String f_name = URLDecoder.decode(codeSource, StandardCharsets.UTF_8.toString());
 	        for (File ff : new File(f_name).getParentFile().listFiles()) {
+	        	if (ff.getName().startsWith(JAR_FILE_NAME) && !ff.getAbsolutePath().equals(f_name))
+	        		continue;
 	        	classpath += ff.getAbsolutePath() + File.pathSeparator;
 	        }
         String className = PytorchJavaCPPInterface.class.getName();
