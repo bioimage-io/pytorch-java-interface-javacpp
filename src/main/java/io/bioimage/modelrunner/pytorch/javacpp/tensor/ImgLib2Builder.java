@@ -21,7 +21,10 @@
 package io.bioimage.modelrunner.pytorch.javacpp.tensor;
 
 
+import java.util.Arrays;
+
 import io.bioimage.modelrunner.tensor.Utils;
+import io.bioimage.modelrunner.utils.CommonUtils;
 import io.bioimage.modelrunner.utils.IndexingUtils;
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
@@ -84,6 +87,9 @@ public class ImgLib2Builder {
 	 */
     public static RandomAccessibleInterval<UnsignedByteType> buildFromTensorUByte(org.bytedeco.pytorch.Tensor tensor) {
     	long[] arrayShape = tensor.shape();
+		if (CommonUtils.int32Overflows(arrayShape, 1))
+			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
+					+ " is too big. Max number of elements per ubyte output tensor supported: " + Integer.MAX_VALUE / 1);
 		long[] tensorShape = new long[arrayShape.length];
 		for (int i = 0; i < arrayShape.length; i ++) tensorShape[i] = arrayShape[arrayShape.length - 1 - i];
 		long flatSize = 1;
@@ -105,6 +111,9 @@ public class ImgLib2Builder {
     public static RandomAccessibleInterval<ByteType> buildFromTensorByte(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] arrayShape = tensor.shape();
+		if (CommonUtils.int32Overflows(arrayShape, 1))
+			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
+					+ " is too big. Max number of elements per byte output tensor supported: " + Integer.MAX_VALUE / 1);
 		long[] tensorShape = new long[arrayShape.length];
 		for (int i = 0; i < arrayShape.length; i ++) tensorShape[i] = arrayShape[arrayShape.length - 1 - i];
 		long flatSize = 1;
@@ -125,6 +134,9 @@ public class ImgLib2Builder {
     public static RandomAccessibleInterval<IntType> buildFromTensorInt(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] arrayShape = tensor.shape();
+		if (CommonUtils.int32Overflows(arrayShape, 4))
+			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
+					+ " is too big. Max number of elements per int output tensor supported: " + Integer.MAX_VALUE / 4);
 		long[] tensorShape = new long[arrayShape.length];
 		for (int i = 0; i < arrayShape.length; i ++) tensorShape[i] = arrayShape[arrayShape.length - 1 - i];
 		long flatSize = 1;
@@ -145,6 +157,9 @@ public class ImgLib2Builder {
     public static RandomAccessibleInterval<FloatType> buildFromTensorFloat(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] arrayShape = tensor.shape();
+		if (CommonUtils.int32Overflows(arrayShape, 4))
+			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
+					+ " is too big. Max number of elements per float output tensor supported: " + Integer.MAX_VALUE / 4);
 		long[] tensorShape = new long[arrayShape.length];
 		for (int i = 0; i < arrayShape.length; i ++) tensorShape[i] = arrayShape[arrayShape.length - 1 - i];
 		long flatSize = 1;
@@ -165,6 +180,9 @@ public class ImgLib2Builder {
     public static RandomAccessibleInterval<DoubleType> buildFromTensorDouble(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] arrayShape = tensor.shape();
+		if (CommonUtils.int32Overflows(arrayShape, 8))
+			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
+					+ " is too big. Max number of elements per double output tensor supported: " + Integer.MAX_VALUE / 8);
 		long[] tensorShape = new long[arrayShape.length];
 		for (int i = 0; i < arrayShape.length; i ++) tensorShape[i] = arrayShape[arrayShape.length - 1 - i];
 		long flatSize = 1;
@@ -185,6 +203,9 @@ public class ImgLib2Builder {
     public static RandomAccessibleInterval<LongType> buildFromTensorLong(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] arrayShape = tensor.shape();
+		if (CommonUtils.int32Overflows(arrayShape, 8))
+			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
+					+ " is too big. Max number of elements per long output tensor supported: " + Integer.MAX_VALUE / 8);
 		long[] tensorShape = new long[arrayShape.length];
 		for (int i = 0; i < arrayShape.length; i ++) tensorShape[i] = arrayShape[arrayShape.length - 1 - i];
 		long flatSize = 1;
