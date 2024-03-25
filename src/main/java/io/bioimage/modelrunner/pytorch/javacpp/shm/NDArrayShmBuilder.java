@@ -33,17 +33,18 @@ import java.io.IOException;
  * @author Carlos Garcia Lopez de Haro
  */
 public class NDArrayShmBuilder {
+
 	
 	/**
 	 * Build a shared memory segment from a Pytorch tensor
 	 * @param tensor
 	 * 	the Pytorch tensor created using JavaCPP
 	 * @param memoryName
-	 * 	the sahred memory region name
+	 * 	the shared memory region name
 	 * @return the {@link SharedMemoryArray} object created
 	 * @throws IOException if there is any error creating the shared memory segment
 	 */
-	public static SharedMemoryArray buildShma(org.bytedeco.pytorch.Tensor  tensor, String memoryName) throws IOException {
-		return SharedMemoryArray.buildNumpyLikeSHMA(memoryName, Cast.unchecked(ImgLib2Builder.build(tensor)));
+	public static SharedMemoryArray buildShma(org.bytedeco.pytorch.Tensor tensor, String memoryName) throws IOException {
+		return SharedMemoryArray.createSHMAFromRAI(memoryName, Cast.unchecked(ImgLib2Builder.build(tensor)), false, true);
 	}
 }
