@@ -433,10 +433,9 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 				shmaOutputList.add(shma);
 				map.put(MEM_NAME_KEY, shma.getName());
 			} else if (PlatformDetection.isWindows()){
-				String memName = SharedMemoryArray.createShmName();
 				SharedMemoryArray shma = SharedMemoryArray.create(0);
 				shmaOutputList.add(shma);
-				map.put(MEM_NAME_KEY, memName);
+				map.put(MEM_NAME_KEY, shma.getName());
 			} else {
 				String memName = SharedMemoryArray.createShmName();
 				map.put(MEM_NAME_KEY, memName);
