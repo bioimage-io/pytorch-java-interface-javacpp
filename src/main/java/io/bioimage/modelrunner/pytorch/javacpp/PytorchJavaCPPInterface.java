@@ -34,8 +34,10 @@ import java.nio.file.FileAlreadyExistsException;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.bytedeco.pytorch.IValue;
 import org.bytedeco.pytorch.IValueVector;
@@ -45,6 +47,10 @@ import org.bytedeco.pytorch.TensorVector;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import io.bioimage.modelrunner.apposed.appose.Service;
+import io.bioimage.modelrunner.apposed.appose.Types;
+import io.bioimage.modelrunner.apposed.appose.Service.Task;
+import io.bioimage.modelrunner.apposed.appose.Service.TaskStatus;
 import io.bioimage.modelrunner.engine.DeepLearningEngineInterface;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
@@ -97,8 +103,10 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	private String modelSource;
 	
 	private boolean interprocessing = true;
-	
-	private Process process;
+    /**
+     * Process where the model is being loaded and executed
+     */
+    Service runner;
 
 	private List<SharedMemoryArray> shmaInputList = new ArrayList<SharedMemoryArray>();
 	private List<SharedMemoryArray> shmaOutputList = new ArrayList<SharedMemoryArray>();
@@ -120,9 +128,9 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	 * dlmodel-runner.
 	 * This one tries to use mkl to be faster
 	 */
-    public PytorchJavaCPPInterface()
+    public PytorchJavaCPPInterface() throws IOException, URISyntaxException
     {
-        //System.setProperty("org.bytedeco.openblas.load", "mkl");
+		this(true);
     }
 	
     /**
@@ -131,106 +139,60 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
      * @param doInterprocessing
      * 	whether to do interprocessing or not
      */
-    private PytorchJavaCPPInterface(boolean doInterprocessing)
+    public PytorchJavaCPPInterface(boolean doInterprocessing) throws IOException, URISyntaxException
     {
-    	interprocessing = doInterprocessing;
+		interprocessing = doInterprocessing;
+		if (this.interprocessing) {
+			runner = getRunner();
+			runner.debug((text) -> System.err.println(text));
+		}
     }
     
-    public static < T extends RealType< T > & NativeType< T > > void main(String[] args) throws LoadModelException, RunModelException {
-    	if (args.length == 0) {
-    		
-	    	String modelFolder = "/Users/Cgarcia/git/deep-icy/models/nse";
-	    	String modelSourc = modelFolder + "/weights-torchscript.pt";
-	    	PytorchJavaCPPInterface pi = new PytorchJavaCPPInterface();
-	    	pi.loadModel(modelFolder, modelSourc);
-	    	RandomAccessibleInterval<FloatType> rai = ArrayImgs.floats(new long[] {1, 1, 16, 144, 144});
-	    	Tensor<?> inp = Tensor.build("aa", "bczyx", rai);
-	    	Tensor<?> out = Tensor.build("oo", "bczyx", rai);
-	    	List<Tensor<?>> ins = new ArrayList<Tensor<?>>();
-	    	List<Tensor<?>> ous = new ArrayList<Tensor<?>>();
-	    	ins.add(inp);
-	    	ous.add(out);
-	    	pi.run(ins, ous);
-	    	System.out.println(false);
-	    	System.gc();
-	    	return;
-    	}
-    	// Unpack the args needed
-    	 if (args.length < 3)
-    		throw new IllegalArgumentException("Error exectuting Pytorch, "
-    				+ "at least35 arguments are required:" + System.lineSeparator()
-    				+ " - Path to the model weigths." + System.lineSeparator()
-    				+ " - Encoded input 1" + System.lineSeparator()
-    				+ " - Encoded input 2 (if exists)" + System.lineSeparator()
-    				+ " - ...." + System.lineSeparator()
-    				+ " - Encoded input n (if exists)" + System.lineSeparator()
-    				+ " - Encoded output 1" + System.lineSeparator()
-    				+ " - Encoded output 2 (if exists)" + System.lineSeparator()
-    				+ " - ...." + System.lineSeparator()
-    				+ " - Encoded output n (if exists)" + System.lineSeparator()
-    				);
-    	String modelSource = args[0];
-    	if (!(new File(modelSource).isFile())) {
-    		throw new IllegalArgumentException("Argument 0 of the main method, '" + modelSource + "' "
-    				+ "should be the path to the wanted .pth weights file.");
-    	}
-    	PytorchJavaCPPInterface ptInterface = new PytorchJavaCPPInterface(false);
-    	Gson gson = new Gson();
-        Type mapType = new TypeToken<HashMap<String, Object>>() {}.getType();
-    	try {
-        	ptInterface.loadModel(new File(modelSource).getParent(), modelSource);
-			IValueVector inputsVector = new IValueVector();
-			for (int i = 1; i < args.length; i ++) {
-	            HashMap<String, Object> map = gson.fromJson(args[i], mapType);
-	            if ((boolean) map.get(IS_INPUT_KEY)) {
-	            	SharedMemoryArray shma = SharedMemoryArray.read((String) map.get(MEM_NAME_KEY));
-	            	RandomAccessibleInterval<T> rai = shma.getSharedRAI();
-	            	inputsVector.put(new IValue(JavaCPPTensorBuilder.buildFromRai(rai)));
-	            	if (PlatformDetection.isWindows()) shma.close();
-	            }
-			}
-	        // Run model
-	        ptInterface.model.eval();
-	        IValue output = ptInterface.model.forward(inputsVector);
-	        TensorVector outputTensorVector = null;
-	        if (output.isTensorList()) {
-	        	outputTensorVector = output.toTensorVector();
-	        } else {
-	        	outputTensorVector = new TensorVector();
-	        	outputTensorVector.put(output.toTensor());
-	        }
-			// Fill the agnostic output tensors list with data from the inference
-			// result
-			int c = 0;
-			for (int i = 1; i < args.length; i ++) {
-	            HashMap<String, Object> map = gson.fromJson(args[i], mapType);
-				if (!((boolean) map.get(IS_INPUT_KEY))) {
-					SharedMemoryArray shma = NDArrayShmBuilder.buildShma(outputTensorVector.get(c), (String) map.get(MEM_NAME_KEY));
-					outputTensorVector.get(c).close();
-					outputTensorVector.get(c).deallocate();
-					c ++;
-					if (PlatformDetection.isWindows()) shma.close();
-				}
-			}
-			outputTensorVector.close();
-			outputTensorVector.deallocate();
-			output.close();
-			output.deallocate();
-			for (int i = 0; i < inputsVector.size(); i ++) {
-				inputsVector.get(i).close();
-				inputsVector.get(i).deallocate();
-			}
-			inputsVector.close();
-			inputsVector.deallocate();	
-			// Run model
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-	    	ptInterface.closeModel();
-			throw new RunModelException(e.toString());
-		}
-    	ptInterface.closeModel();
+    private Service getRunner() throws IOException, URISyntaxException {
+		List<String> args = getProcessCommandsWithoutArgs();
+		String[] argArr = new String[args.size()];
+		args.toArray(argArr);
+
+		return new Service(new File("."), argArr);
     }
+
+	/**
+	 * {@inheritDoc}
+	 * 
+     * Load a Pytorch torchscript model using JavaCpp. 
+	 */
+	@Override
+	public void loadModel(String modelFolder, String modelSource) throws LoadModelException {
+		this.modelSource = modelSource;
+		if (interprocessing) {
+			try {
+				launchModelLoadOnProcess();
+			} catch (IOException | InterruptedException e) {
+				throw new LoadModelException(Types.stackTrace(e));
+			}
+			return;
+		}
+
+    	try {
+	    	model = org.bytedeco.pytorch.global.torch.load(modelSource);
+			model.eval();
+    	} catch (Exception ex) {
+    		throw new LoadModelException(Types.stackTrace(ex));
+    	}
+	}
+	
+	private void launchModelLoadOnProcess() throws IOException, InterruptedException {
+		HashMap<String, Object> args = new HashMap<String, Object>();
+		args.put("modelFolder", this.modelSource);
+		Task task = runner.task("loadModel", args);
+		task.waitFor();
+		if (task.status == TaskStatus.CANCELED)
+			throw new RuntimeException();
+		else if (task.status == TaskStatus.FAILED)
+			throw new RuntimeException();
+		else if (task.status == TaskStatus.CRASHED)
+			throw new RuntimeException();
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -239,15 +201,15 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	 * and modifies the output list with the results obtained
 	 * 
 	 */
-	@Override
-	public void run(List<Tensor<?>> inputTensors, List<Tensor<?>> outputTensors) throws RunModelException {
+	public <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>
+	void run(List<Tensor<T>> inputTensors, List<Tensor<R>> outputTensors) throws RunModelException {
 		if (interprocessing) {
 			runInterprocessing(inputTensors, outputTensors);
 			return;
 		}
 		IValueVector inputsVector = new IValueVector();
 		List<String> inputListNames = new ArrayList<String>();
-        for (Tensor<?> tt : inputTensors) {
+        for (Tensor<T> tt : inputTensors) {
         	inputListNames.add(tt.getName());
         	inputsVector.put(new IValue(JavaCPPTensorBuilder.build(tt)));
         }
@@ -274,65 +236,44 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		inputsVector.close();
 		inputsVector.deallocate();		
 	}
+	
+	protected void runFromShmas(List<String> inputs, List<String> outputs) throws IOException {
+		
+		List<TType> inTensors = new ArrayList<TType>();
+		int c = 0;
+		for (String ee : inputs) {
+			Map<String, Object> decoded = Types.decode(ee);
+			SharedMemoryArray shma = SharedMemoryArray.read((String) decoded.get(MEM_NAME_KEY));
+			TType inT = io.bioimage.modelrunner.tensorflow.v2.api030.shm.TensorBuilder.build(shma);
+			if (PlatformDetection.isWindows()) shma.close();
+			inTensors.add(inT);
+			String inputName = getModelInputName((String) decoded.get(NAME_KEY), c ++);
+			runner.feed(inputName, inT);
+		}
+		
+		c = 0;
+		for (String ee : outputs)
+			runner = runner.fetch(getModelOutputName((String) Types.decode(ee).get(NAME_KEY), c ++));
+		// Run runner
+		List<org.tensorflow.Tensor> resultPatchTensors = runner.run();
 
-	/**
-	 * {@inheritDoc}
-	 * 
-     * Load a Pytorch torchscript model using JavaCpp. 
-	 */
-	@Override
-	public void loadModel(String modelFolder, String modelSource) throws LoadModelException {
-		this.modelSource = modelSource;
-		if (interprocessing) 
-			return;
-
-    	try {
-	    	model = org.bytedeco.pytorch.global.torch.load(modelSource);
-			model.eval();
-    	} catch (Exception ex) {
-    		throw new LoadModelException(ex.toString());
-    	}
-	}
-
-
-	/**
-	 * {@inheritDoc}
-	 * 
-	 * Closes the Pytorch model and sets it to null once the model is not needed anymore.
-	 * 
-	 */
-	@Override
-	public void closeModel() {
-		if (model == null)
-			return;
-		model.close();
-		model.deallocate();
-	}
-
-	/**
-	 * Create the list a list of output tensors agnostic to the Deep Learning
-	 * engine that can be readable by the model-runner
-	 * 
-	 * @param tensorVector 
-	 * 	an object containing a list of Pytorch JavaCpp tensors
-	 * @param outputTensors 
-	 * 	the list of output tensors where the output data is going to be written to send back
-	 * 	to the model runner
-	 * @throws RunModelException If the number of tensors expected is not the same
-	 *           as the number of Tensors outputed by the model
-	 */
-	public static void fillOutputTensors(TensorVector tensorVector, List<Tensor<?>> outputTensors) throws RunModelException{
-		if (tensorVector.size() != outputTensors.size())
-			throw new RunModelException((int) tensorVector.size(), outputTensors.size());
-		for (int i = 0; i < tensorVector.size(); i ++) {
-			outputTensors.get(i).setData(ImgLib2Builder.build(tensorVector.get(i)));
-			tensorVector.get(i).close();
-			tensorVector.get(i).deallocate();
+		// Fill the agnostic output tensors list with data from the inference result
+		c = 0;
+		for (String ee : outputs) {
+			Map<String, Object> decoded = Types.decode(ee);
+			ShmBuilder.build((TType) resultPatchTensors.get(c ++), (String) decoded.get(MEM_NAME_KEY));
+		}
+		// Close the remaining resources
+		for (TType tt : inTensors) {
+			tt.close();
+		}
+		for (org.tensorflow.Tensor tt : resultPatchTensors) {
+			tt.close();
 		}
 	}
 	
 	/**
-	 * MEthod  that makes all the arrangements
+	 * MEthod only used in MacOS Intel and Windows systems that makes all the arrangements
 	 * to create another process, communicate the model info and tensors to the other 
 	 * process and then retrieve the results of the other process
 	 * @param inputTensors
@@ -341,28 +282,27 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	 * 	expected results of the model
 	 * @throws RunModelException if there is any issue running the model
 	 */
-	public void runInterprocessing(List<Tensor<?>> inputTensors, List<Tensor<?>> outputTensors) throws RunModelException {
+	public <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>
+	void runInterprocessing(List<Tensor<T>> inputTensors, List<Tensor<R>> outputTensors) throws RunModelException {
 		shmaInputList = new ArrayList<SharedMemoryArray>();
 		shmaOutputList = new ArrayList<SharedMemoryArray>();
+		List<String> encIns = modifyForWinCmd(encodeInputs(inputTensors));
+		List<String> encOuts = modifyForWinCmd(encodeOutputs(outputTensors));
+		LinkedHashMap<String, Object> args = new LinkedHashMap<String, Object>();
+		args.put("inputs", encIns);
+		args.put("outputs", encOuts);
+
 		try {
-			List<String> args = getProcessCommandsWithoutArgs();
-			List<String> encIns = encodeInputs(inputTensors);
-			args.addAll(modifyForWinCmd(encIns));
-			List<String> encOuts = encodeOutputs(outputTensors);
-			args.addAll(modifyForWinCmd(encOuts));
-			//main(new String[] {modelSource, encIns.get(0), encOuts.get(0)});
-			ProcessBuilder builder = new ProcessBuilder(args);
-			builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-			builder.redirectError(ProcessBuilder.Redirect.INHERIT);
-	        process = builder.start();
-	        int result = process.waitFor();
-	        if (result != 0)
-	    		throw new RunModelException("Error executing the Pytorch model in"
-	        			+ " a separate process. The process was not terminated correctly."
-	        			+ System.lineSeparator() + readProcessStringOutput(process));
-	        process = null;
-	        for (int i = 0; i < outputTensors.size(); i ++) {
-	        	String name = (String) decodeString(encOuts.get(i)).get(MEM_NAME_KEY);
+			Task task = runner.task("inference", args);
+			task.waitFor();
+			if (task.status == TaskStatus.CANCELED)
+				throw new RuntimeException();
+			else if (task.status == TaskStatus.FAILED)
+				throw new RuntimeException();
+			else if (task.status == TaskStatus.CRASHED)
+				throw new RuntimeException();
+			for (int i = 0; i < outputTensors.size(); i ++) {
+	        	String name = (String) Types.decode(encOuts.get(i)).get(MEM_NAME_KEY);
 	        	SharedMemoryArray shm = shmaOutputList.stream()
 	        			.filter(ss -> ss.getName().equals(name)).findFirst().orElse(null);
 	        	if (shm == null) {
@@ -372,12 +312,13 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	        	RandomAccessibleInterval<?> rai = shm.getSharedRAI();
 	        	outputTensors.get(i).setData(Tensor.createCopyOfRaiInWantedDataType(Cast.unchecked(rai), Util.getTypeFromInterval(Cast.unchecked(rai))));
 	        }
-	        closeShmas();
 		} catch (Exception e) {
 			closeShmas();
-			closeModel();
-			throw new RunModelException(e.toString());
+			if (e instanceof RunModelException)
+				throw (RunModelException) e;
+			throw new RunModelException(Types.stackTrace(e));
 		}
+		closeShmas();
 	}
 	
 	private void closeShmas() {
@@ -399,12 +340,69 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 			newIns.add("\"" + ii.replace("\"", "\\\"") + "\"");
 		return newIns;
 	}
+
+
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * Closes the Pytorch model and sets it to null once the model is not needed anymore.
+	 * 
+	 */
+	@Override
+	public void closeModel() {
+		if (this.interprocessing && runner != null) {
+			Task task;
+			try {
+				task = runner.task("close");
+				task.waitFor();
+			} catch (IOException | InterruptedException e) {
+				throw new RuntimeException(Types.stackTrace(e));
+			}
+			if (task.status == TaskStatus.CANCELED)
+				throw new RuntimeException();
+			else if (task.status == TaskStatus.FAILED)
+				throw new RuntimeException();
+			else if (task.status == TaskStatus.CRASHED)
+				throw new RuntimeException();
+			this.runner.close();
+			return;
+		} else if (this.interprocessing) {
+			return;
+		}
+		if (model == null)
+			return;
+		model.close();
+		model.deallocate();
+	}
+
+	/**
+	 * Create the list a list of output tensors agnostic to the Deep Learning
+	 * engine that can be readable by the model-runner
+	 * 
+	 * @param tensorVector 
+	 * 	an object containing a list of Pytorch JavaCpp tensors
+	 * @param outputTensors 
+	 * 	the list of output tensors where the output data is going to be written to send back
+	 * 	to the model runner
+	 * @throws RunModelException If the number of tensors expected is not the same
+	 *           as the number of Tensors outputed by the model
+	 */
+	public static <T extends RealType<T> & NativeType<T>> 
+	void fillOutputTensors(TensorVector tensorVector, List<Tensor<T>> outputTensors) throws RunModelException{
+		if (tensorVector.size() != outputTensors.size())
+			throw new RunModelException((int) tensorVector.size(), outputTensors.size());
+		for (int i = 0; i < tensorVector.size(); i ++) {
+			outputTensors.get(i).setData(ImgLib2Builder.build(tensorVector.get(i)));
+			tensorVector.get(i).close();
+			tensorVector.get(i).deallocate();
+		}
+	}
 	
 	
-	private List<String> encodeInputs(List<Tensor<?>> inputTensors) throws FileAlreadyExistsException {
+	private <T extends RealType<T> & NativeType<T>> List<String> encodeInputs(List<Tensor<T>> inputTensors) {
 		List<String> encodedInputTensors = new ArrayList<String>();
 		Gson gson = new Gson();
-		for (Tensor<?> tt : inputTensors) {
+		for (Tensor<T> tt : inputTensors) {
 			SharedMemoryArray shma = SharedMemoryArray.createSHMAFromRAI(tt.getData(), false, true);
 			shmaInputList.add(shma);
 			HashMap<String, Object> map = new HashMap<String, Object>();
@@ -419,7 +417,8 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	}
 	
 	
-	private List<String> encodeOutputs(List<Tensor<?>> outputTensors) throws FileAlreadyExistsException {
+	private <T extends RealType<T> & NativeType<T>> 
+	List<String> encodeOutputs(List<Tensor<T>> outputTensors) {
 		Gson gson = new Gson();
 		List<String> encodedOutputTensors = new ArrayList<String>();
 		for (Tensor<?> tt : outputTensors) {
@@ -446,13 +445,54 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		return encodedOutputTensors;
 	}
 	
-	
-	private HashMap<String, Object> decodeString(String encoded) {
-		Gson gson = new Gson();
-        Type mapType = new TypeToken<HashMap<String, Object>>() {}.getType();
-        HashMap<String, Object> map = gson.fromJson(encoded, mapType);
-		return map;
+	/**
+	 * Create the arguments needed to execute tensorflow 2 in another 
+	 * process with the corresponding tensors
+	 * @return the command used to call the separate process
+	 * @throws IOException if the command needed to execute interprocessing is too long
+	 * @throws URISyntaxException if there is any error with the URIs retrieved from the classes
+	 */
+	private List<String> getProcessCommandsWithoutArgs() throws IOException, URISyntaxException {
+		String javaHome = System.getProperty("java.home");
+        String javaBin = javaHome +  File.separator + "bin" + File.separator + "java";
+
+        String classpath = getCurrentClasspath();
+        ProtectionDomain protectionDomain = PytorchJavaCPPInterface.class.getProtectionDomain();
+        String codeSource = protectionDomain.getCodeSource().getLocation().getPath();
+        String f_name = URLDecoder.decode(codeSource, StandardCharsets.UTF_8.toString());
+        f_name = new File(f_name).getAbsolutePath();
+        for (File ff : new File(f_name).getParentFile().listFiles()) {
+        	if (ff.getName().startsWith(JAR_FILE_NAME) && !ff.getAbsolutePath().equals(f_name))
+        		continue;
+        	classpath += ff.getAbsolutePath() + File.pathSeparator;
+        }
+        String className = JavaWorker.class.getName();
+        List<String> command = new LinkedList<String>();
+        command.add(padSpecialJavaBin(javaBin));
+        command.add("-cp");
+        command.add(classpath);
+        command.add(className);
+        return command;
 	}
+	
+    private static String getCurrentClasspath() throws UnsupportedEncodingException {
+
+        String modelrunnerPath = getPathFromClass(DeepLearningEngineInterface.class);
+        String imglib2Path = getPathFromClass(NativeType.class);
+        String gsonPath = getPathFromClass(Gson.class);
+        String jnaPath = getPathFromClass(com.sun.jna.Library.class);
+        String jnaPlatformPath = getPathFromClass(com.sun.jna.platform.FileUtils.class);
+        if (modelrunnerPath == null || (modelrunnerPath.endsWith("DeepLearningEngineInterface.class") 
+        		&& !modelrunnerPath.contains(File.pathSeparator)))
+        	modelrunnerPath = System.getProperty("java.class.path");
+    	modelrunnerPath = System.getProperty("java.class.path");
+        String classpath =  modelrunnerPath + File.pathSeparator + imglib2Path + File.pathSeparator;
+        classpath =  classpath + gsonPath + File.pathSeparator;
+        classpath =  classpath + jnaPath + File.pathSeparator;
+        classpath =  classpath + jnaPlatformPath + File.pathSeparator;
+
+        return classpath;
+    }
 	
 	/**
 	 * Create the arguments needed to execute Pytorch in another 
@@ -461,7 +501,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	 * @throws IOException if the command needed to execute interprocessing is too long
 	 * @throws URISyntaxException if there is any error with the URIs retrieved from the classes
 	 */
-	private List<String> getProcessCommandsWithoutArgs() throws IOException, URISyntaxException {
+	private List<String> getProcessCommandsWithoutArgs2() throws IOException, URISyntaxException {
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome +  File.separator + "bin" + File.separator + "java";
 
@@ -541,25 +581,4 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
         }
         return javaBin;
 	}
-    
-    /**
-     * MEthod to obtain the String output of the process in case something goes wrong
-     * @param process
-     * 	the process that executed the TF2 model
-     * @return the String output that we would have seen on the terminal
-     * @throws IOException if the output of the terminal cannot be seen
-     */
-    private static String readProcessStringOutput(Process process) throws IOException {
-    	BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-		BufferedReader bufferedErrReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-		String text = "";
-		String line;
-	    while ((line = bufferedErrReader.readLine()) != null) {
-	    	text += line + System.lineSeparator();
-	    }
-	    while ((line = bufferedReader.readLine()) != null) {
-	    	text += line + System.lineSeparator();
-	    }
-	    return text;
-    }
 }
