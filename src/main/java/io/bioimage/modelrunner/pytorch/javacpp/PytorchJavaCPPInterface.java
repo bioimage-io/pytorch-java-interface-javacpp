@@ -20,17 +20,13 @@
  */
 package io.bioimage.modelrunner.pytorch.javacpp;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Type;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileAlreadyExistsException;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,7 +41,6 @@ import org.bytedeco.pytorch.JitModule;
 import org.bytedeco.pytorch.TensorVector;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 import io.bioimage.modelrunner.apposed.appose.Service;
 import io.bioimage.modelrunner.apposed.appose.Types;
@@ -54,18 +49,17 @@ import io.bioimage.modelrunner.apposed.appose.Service.TaskStatus;
 import io.bioimage.modelrunner.engine.DeepLearningEngineInterface;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
-import io.bioimage.modelrunner.pytorch.javacpp.shm.NDArrayShmBuilder;
 import io.bioimage.modelrunner.pytorch.javacpp.tensor.ImgLib2Builder;
 import io.bioimage.modelrunner.pytorch.javacpp.tensor.JavaCPPTensorBuilder;
+import io.bioimage.modelrunner.pytorch.javacpp.shm.ShmBuilder;
+import io.bioimage.modelrunner.pytorch.javacpp.shm.TensorBuilder;
 import io.bioimage.modelrunner.system.PlatformDetection;
 import io.bioimage.modelrunner.tensor.Tensor;
 import io.bioimage.modelrunner.tensor.shm.SharedMemoryArray;
 import io.bioimage.modelrunner.utils.CommonUtils;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
 import net.imglib2.util.Util;
 
@@ -239,37 +233,41 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	
 	protected void runFromShmas(List<String> inputs, List<String> outputs) throws IOException {
 		
-		List<TType> inTensors = new ArrayList<TType>();
-		int c = 0;
+		IValueVector inputsVector = new IValueVector();
 		for (String ee : inputs) {
 			Map<String, Object> decoded = Types.decode(ee);
 			SharedMemoryArray shma = SharedMemoryArray.read((String) decoded.get(MEM_NAME_KEY));
-			TType inT = io.bioimage.modelrunner.tensorflow.v2.api030.shm.TensorBuilder.build(shma);
+			org.bytedeco.pytorch.Tensor  inT = TensorBuilder.build(shma);
+        	inputsVector.put(new IValue(inT));
 			if (PlatformDetection.isWindows()) shma.close();
-			inTensors.add(inT);
-			String inputName = getModelInputName((String) decoded.get(NAME_KEY), c ++);
-			runner.feed(inputName, inT);
 		}
-		
-		c = 0;
-		for (String ee : outputs)
-			runner = runner.fetch(getModelOutputName((String) Types.decode(ee).get(NAME_KEY), c ++));
-		// Run runner
-		List<org.tensorflow.Tensor> resultPatchTensors = runner.run();
+        // Run model
+		model.eval();
+        IValue output = model.forward(inputsVector);
+        TensorVector outputTensorVector = null;
+        if (output.isTensorList()) {
+        	outputTensorVector = output.toTensorVector();
+        } else {
+        	outputTensorVector = new TensorVector();
+        	outputTensorVector.put(output.toTensor());
+        }
 
 		// Fill the agnostic output tensors list with data from the inference result
-		c = 0;
+		int c = 0;
 		for (String ee : outputs) {
 			Map<String, Object> decoded = Types.decode(ee);
-			ShmBuilder.build((TType) resultPatchTensors.get(c ++), (String) decoded.get(MEM_NAME_KEY));
+			ShmBuilder.build(outputTensorVector.get(c ++), (String) decoded.get(MEM_NAME_KEY));
 		}
-		// Close the remaining resources
-		for (TType tt : inTensors) {
-			tt.close();
+		outputTensorVector.close();
+		outputTensorVector.deallocate();
+		output.close();
+		output.deallocate();
+		for (int i = 0; i < inputsVector.size(); i ++) {
+			inputsVector.get(i).close();
+			inputsVector.get(i).deallocate();
 		}
-		for (org.tensorflow.Tensor tt : resultPatchTensors) {
-			tt.close();
-		}
+		inputsVector.close();
+		inputsVector.deallocate();	
 	}
 	
 	/**
