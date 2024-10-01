@@ -41,7 +41,7 @@ import net.imglib2.type.numeric.real.FloatType;
  * A utility class that converts {@link Tensor}s into {@link SharedMemoryArray}s for
  * interprocessing communication
  * 
- * @author Carlos Garcia Lopez de Haro and Daniel Felipe Gonzalez Obando
+ * @author Carlos Garcia Lopez de Haro
  */
 public final class ShmBuilder
 {
