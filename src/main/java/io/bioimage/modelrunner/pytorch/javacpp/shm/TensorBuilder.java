@@ -23,13 +23,6 @@ package io.bioimage.modelrunner.pytorch.javacpp.shm;
 
 import io.bioimage.modelrunner.tensor.shm.SharedMemoryArray;
 import io.bioimage.modelrunner.utils.CommonUtils;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.Img;
-import net.imglib2.type.numeric.integer.IntType;
-import net.imglib2.type.numeric.integer.LongType;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
-import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
 
 import java.nio.ByteBuffer;
@@ -42,10 +35,9 @@ import java.util.Arrays;
 import org.bytedeco.pytorch.Tensor;
 
 /**
- * A TensorFlow 2 {@link Tensor} builder from {@link Img} and
- * {@link io.bioimage.modelrunner.tensor.Tensor} objects.
+ * Utility class to build Pytorch Bytedeco tensors from shm segments using {@link SharedMemoryArray}
  * 
- * @author Carlos Garcia Lopez de Haro and Daniel Felipe Gonzalez Obando
+ * @author Carlos Garcia Lopez de Haro
  */
 public final class TensorBuilder {
 
@@ -55,19 +47,16 @@ public final class TensorBuilder {
 	private TensorBuilder() {}
 
 	/**
-	 * Creates {@link TType} instance with the same size and information as the
-	 * given {@link RandomAccessibleInterval}.
+	 * Creates {@link Tensor} instance from a {@link SharedMemoryArray}
 	 * 
-	 * @param <T>
-	 * 	the ImgLib2 data types the {@link RandomAccessibleInterval} can be
 	 * @param array
-	 * 	the {@link RandomAccessibleInterval} that is going to be converted into
-	 *  a {@link TType} tensor
-	 * @return a {@link TType} tensor
-	 * @throws IllegalArgumentException if the type of the {@link RandomAccessibleInterval}
+	 * 	the {@link SharedMemoryArray} that is going to be converted into
+	 *  a {@link Tensor} tensor
+	 * @return the Pytorch {@link Tensor} as the one stored in the shared memory segment
+	 * @throws IllegalArgumentException if the type of the {@link SharedMemoryArray}
 	 *  is not supported
 	 */
-	public static org.bytedeco.pytorch.Tensor build(SharedMemoryArray array) throws IllegalArgumentException
+	public static Tensor build(SharedMemoryArray array) throws IllegalArgumentException
 	{
 		// Create an Icy sequence of the same type of the tensor
 		if (array.getOriginalDataType().equals("int8")) {
@@ -90,50 +79,30 @@ public final class TensorBuilder {
 		}
 	}
 
-	/**
-	 * Creates a {@link TType} tensor of type {@link TUint8} from an
-	 * {@link RandomAccessibleInterval} of type {@link UnsignedByteType}
-	 * 
-	 * @param tensor 
-	 * 	The {@link RandomAccessibleInterval} to fill the tensor with.
-	 * @return The {@link TType} tensor filled with the {@link RandomAccessibleInterval} data.
-	 * @throws IllegalArgumentException if the input {@link RandomAccessibleInterval} type is
-	 * not compatible
-	 */
-	public static org.bytedeco.pytorch.Tensor buildByte(SharedMemoryArray tensor)
+	private static Tensor buildByte(SharedMemoryArray shmArray)
 		throws IllegalArgumentException
 	{
-		long[] ogShape = tensor.getOriginalShape();
+		long[] ogShape = shmArray.getOriginalShape();
 		if (CommonUtils.int32Overflows(ogShape, 1))
 			throw new IllegalArgumentException("Provided tensor with shape " + Arrays.toString(ogShape) 
 								+ " is too big. Max number of elements per ubyte tensor supported: " + Integer.MAX_VALUE);
-		if (!tensor.isNumpyFormat())
+		if (!shmArray.isNumpyFormat())
 			throw new IllegalArgumentException("Shared memory arrays must be saved in numpy format.");
-		ByteBuffer buff = tensor.getDataBufferNoHeader();
+		ByteBuffer buff = shmArray.getDataBufferNoHeader();
 		Tensor ndarray = Tensor.create(buff.array(), ogShape);
 		return ndarray;
 	}
 
-	/**
-	 * Creates a {@link TInt32} tensor of type {@link TInt32} from an
-	 * {@link RandomAccessibleInterval} of type {@link IntType}
-	 * 
-	 * @param tensor 
-	 * 	The {@link RandomAccessibleInterval} to fill the tensor with.
-	 * @return The {@link TInt32} tensor filled with the {@link RandomAccessibleInterval} data.
-	 * @throws IllegalArgumentException if the input {@link RandomAccessibleInterval} type is
-	 * not compatible
-	 */
-	public static Tensor buildInt(SharedMemoryArray tensor)
+	private static Tensor buildInt(SharedMemoryArray shmaArray)
 		throws IllegalArgumentException
 	{
-		long[] ogShape = tensor.getOriginalShape();
+		long[] ogShape = shmaArray.getOriginalShape();
 		if (CommonUtils.int32Overflows(ogShape, 1))
 			throw new IllegalArgumentException("Provided tensor with shape " + Arrays.toString(ogShape) 
 								+ " is too big. Max number of elements per ubyte tensor supported: " + Integer.MAX_VALUE);
-		if (!tensor.isNumpyFormat())
+		if (!shmaArray.isNumpyFormat())
 			throw new IllegalArgumentException("Shared memory arrays must be saved in numpy format.");
-		ByteBuffer buff = tensor.getDataBufferNoHeader();
+		ByteBuffer buff = shmaArray.getDataBufferNoHeader();
 		IntBuffer intBuff = buff.asIntBuffer();
 		int[] intArray = new int[intBuff.capacity()];
 		intBuff.get(intArray);
@@ -141,26 +110,16 @@ public final class TensorBuilder {
 		return ndarray;
 	}
 
-	/**
-	 * Creates a {@link TInt64} tensor of type {@link TInt64} from an
-	 * {@link RandomAccessibleInterval} of type {@link LongType}
-	 * 
-	 * @param tensor 
-	 * 	The {@link RandomAccessibleInterval} to fill the tensor with.
-	 * @return The {@link TInt64} tensor filled with the {@link RandomAccessibleInterval} data.
-	 * @throws IllegalArgumentException if the input {@link RandomAccessibleInterval} type is
-	 * not compatible
-	 */
-	private static org.bytedeco.pytorch.Tensor buildLong(SharedMemoryArray tensor)
+	private static org.bytedeco.pytorch.Tensor buildLong(SharedMemoryArray shmArray)
 		throws IllegalArgumentException
 	{
-		long[] ogShape = tensor.getOriginalShape();
+		long[] ogShape = shmArray.getOriginalShape();
 		if (CommonUtils.int32Overflows(ogShape, 1))
 			throw new IllegalArgumentException("Provided tensor with shape " + Arrays.toString(ogShape) 
 								+ " is too big. Max number of elements per ubyte tensor supported: " + Integer.MAX_VALUE);
-		if (!tensor.isNumpyFormat())
+		if (!shmArray.isNumpyFormat())
 			throw new IllegalArgumentException("Shared memory arrays must be saved in numpy format.");
-		ByteBuffer buff = tensor.getDataBufferNoHeader();
+		ByteBuffer buff = shmArray.getDataBufferNoHeader();
 		LongBuffer longBuff = buff.asLongBuffer();
 		long[] longArray = new long[longBuff.capacity()];
 		longBuff.get(longArray);
@@ -168,26 +127,16 @@ public final class TensorBuilder {
 		return ndarray;
 	}
 
-	/**
-	 * Creates a {@link TFloat32} tensor of type {@link TFloat32} from an
-	 * {@link RandomAccessibleInterval} of type {@link FloatType}
-	 * 
-	 * @param tensor 
-	 * 	The {@link RandomAccessibleInterval} to fill the tensor with.
-	 * @return The {@link TFloat32} tensor filled with the {@link RandomAccessibleInterval} data.
-	 * @throws IllegalArgumentException if the input {@link RandomAccessibleInterval} type is
-	 * not compatible
-	 */
-	public static org.bytedeco.pytorch.Tensor buildFloat(SharedMemoryArray tensor)
+	private static org.bytedeco.pytorch.Tensor buildFloat(SharedMemoryArray shmArray)
 		throws IllegalArgumentException
 	{
-		long[] ogShape = tensor.getOriginalShape();
+		long[] ogShape = shmArray.getOriginalShape();
 		if (CommonUtils.int32Overflows(ogShape, 1))
 			throw new IllegalArgumentException("Provided tensor with shape " + Arrays.toString(ogShape) 
 								+ " is too big. Max number of elements per ubyte tensor supported: " + Integer.MAX_VALUE);
-		if (!tensor.isNumpyFormat())
+		if (!shmArray.isNumpyFormat())
 			throw new IllegalArgumentException("Shared memory arrays must be saved in numpy format.");
-		ByteBuffer buff = tensor.getDataBufferNoHeader();
+		ByteBuffer buff = shmArray.getDataBufferNoHeader();
 		FloatBuffer floatBuff = buff.asFloatBuffer();
 		float[] floatArray = new float[floatBuff.capacity()];
 		floatBuff.get(floatArray);
@@ -195,26 +144,16 @@ public final class TensorBuilder {
 		return ndarray;
 	}
 
-	/**
-	 * Creates a {@link TFloat64} tensor of type {@link TFloat64} from an
-	 * {@link RandomAccessibleInterval} of type {@link DoubleType}
-	 * 
-	 * @param tensor 
-	 * 	The {@link RandomAccessibleInterval} to fill the tensor with.
-	 * @return The {@link TFloat64} tensor filled with the {@link RandomAccessibleInterval} data.
-	 * @throws IllegalArgumentException if the input {@link RandomAccessibleInterval} type is
-	 * not compatible
-	 */
-	private static org.bytedeco.pytorch.Tensor buildDouble(SharedMemoryArray tensor)
+	private static org.bytedeco.pytorch.Tensor buildDouble(SharedMemoryArray shmArray)
 		throws IllegalArgumentException
 	{
-		long[] ogShape = tensor.getOriginalShape();
+		long[] ogShape = shmArray.getOriginalShape();
 		if (CommonUtils.int32Overflows(ogShape, 1))
 			throw new IllegalArgumentException("Provided tensor with shape " + Arrays.toString(ogShape) 
 								+ " is too big. Max number of elements per ubyte tensor supported: " + Integer.MAX_VALUE);
-		if (!tensor.isNumpyFormat())
+		if (!shmArray.isNumpyFormat())
 			throw new IllegalArgumentException("Shared memory arrays must be saved in numpy format.");
-		ByteBuffer buff = tensor.getDataBufferNoHeader();
+		ByteBuffer buff = shmArray.getDataBufferNoHeader();
 		DoubleBuffer doubleBuff = buff.asDoubleBuffer();
 		double[] doubleArray = new double[doubleBuff.capacity()];
 		doubleBuff.get(doubleArray);
