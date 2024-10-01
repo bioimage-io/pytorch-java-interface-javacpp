@@ -88,14 +88,6 @@ public class JavaCPPTensorBuilder {
     	}
     }
 
-	/**
-	 * Builds a {@link org.bytedeco.pytorch.Tensor} from a signed byte-typed
-	 * {@link RandomAccessibleInterval}.
-	 * 
-	 * @param tensor 
-	 * 	the {@link RandomAccessibleInterval} that will be copied into an {@link org.bytedeco.pytorch.Tensor}
-	 * @return The {@link org.bytedeco.pytorch.Tensor} built from the tensor of type {@link ByteType}.
-	 */
     private static org.bytedeco.pytorch.Tensor buildFromTensorByte(RandomAccessibleInterval<ByteType> tensor)
     {
 		long[] ogShape = tensor.dimensionsAsLongArray();
@@ -121,14 +113,6 @@ public class JavaCPPTensorBuilder {
 	 	return ndarray;
 	}
 
-	/**
-	 * Builds a {@link org.bytedeco.pytorch.Tensor} from a signed integer-typed
-	 * {@link RandomAccessibleInterval}.
-	 * 
-	 * @param tensor 
-	 * 	the {@link RandomAccessibleInterval} that will be copied into an {@link org.bytedeco.pytorch.Tensor}
-	 * @return The {@link org.bytedeco.pytorch.Tensor} built from the tensor of type {@link IntType}.
-	 */
     private static org.bytedeco.pytorch.Tensor buildFromTensorInt(RandomAccessibleInterval<IntType> tensor)
     {
 		long[] ogShape = tensor.dimensionsAsLongArray();
@@ -154,14 +138,6 @@ public class JavaCPPTensorBuilder {
 	 	return ndarray;
     }
 
-	/**
-	 * Builds a {@link org.bytedeco.pytorch.Tensor} from a signed float-typed
-	 * {@link RandomAccessibleInterval}.
-	 * 
-	 * @param tensor 
-	 * 	the {@link RandomAccessibleInterval} that will be copied into an {@link org.bytedeco.pytorch.Tensor}
-	 * @return The {@link org.bytedeco.pytorch.Tensor} built from the tensor of type {@link FloatType}.
-	 */
     private static org.bytedeco.pytorch.Tensor buildFromTensorFloat(RandomAccessibleInterval<FloatType> tensor)
     {
 		long[] ogShape = tensor.dimensionsAsLongArray();
@@ -187,14 +163,6 @@ public class JavaCPPTensorBuilder {
 	 	return ndarray;
     }
 
-	/**
-	 * Builds a {@link org.bytedeco.pytorch.Tensor} from a signed double-typed
-	 * {@link RandomAccessibleInterval}.
-	 * 
-	 * @param tensor 
-	 * 	the {@link RandomAccessibleInterval} that will be copied into an {@link NDArray}
-	 * @return The {@link org.bytedeco.pytorch.Tensor} built from the tensor of type {@link DoubleType}.
-	 */
     private static org.bytedeco.pytorch.Tensor buildFromTensorDouble(RandomAccessibleInterval<DoubleType> tensor)
     {
 		long[] ogShape = tensor.dimensionsAsLongArray();

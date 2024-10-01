@@ -22,6 +22,12 @@ public class JavaWorker {
 		
 	private boolean cancelRequested = false;
 	
+	/**
+	 * Method in the child process that is in charge of keeping the process open and calling the model load,
+	 * model inference and model closing
+	 * @param args
+	 * 	args of the parent process
+	 */
 	public static void main(String[] args) {
     	
     	try(Scanner scanner = new Scanner(System.in)){

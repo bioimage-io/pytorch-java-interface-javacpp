@@ -25,17 +25,12 @@ import java.util.Arrays;
 
 import io.bioimage.modelrunner.tensor.Utils;
 import io.bioimage.modelrunner.utils.CommonUtils;
-import io.bioimage.modelrunner.utils.IndexingUtils;
-import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.Img;
-import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.integer.ByteType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.LongType;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 
@@ -78,37 +73,7 @@ public class ImgLib2Builder {
     	}
     }
 
-	/**
-	 * Builds a {@link RandomAccessibleInterval} from a unsigned byte-typed {@link org.bytedeco.pytorch.Tensor}.
-	 * 
-	 * @param tensor 
-	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
-	 * @return The {@link RandomAccessibleInterval} built from the tensor of type {@link UnsignedByteType}.
-	 */
-    public static RandomAccessibleInterval<UnsignedByteType> buildFromTensorUByte(org.bytedeco.pytorch.Tensor tensor) {
-    	long[] arrayShape = tensor.shape();
-		if (CommonUtils.int32Overflows(arrayShape, 1))
-			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
-					+ " is too big. Max number of elements per ubyte output tensor supported: " + Integer.MAX_VALUE / 1);
-		long[] tensorShape = new long[arrayShape.length];
-		for (int i = 0; i < arrayShape.length; i ++) tensorShape[i] = arrayShape[arrayShape.length - 1 - i];
-		long flatSize = 1;
-    	for (long l : tensorShape) {flatSize *= l;}
-    	byte[] flatArr = new byte[(int) flatSize];
-    	tensor.data_ptr_byte().get(flatArr);
-		RandomAccessibleInterval<UnsignedByteType> rai = ArrayImgs.unsignedBytes(flatArr, tensorShape);
-		return Utils.transpose(rai);
-	}
-
-
-	/**
-	 * Builds a {@link RandomAccessibleInterval} from a signed byte-typed {@link org.bytedeco.pytorch.Tensor}.
-	 * 
-	 * @param tensor 
-	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
-	 * @return The {@link RandomAccessibleInterval} built from the tensor of type {@link ByteType}.
-	 */
-    public static RandomAccessibleInterval<ByteType> buildFromTensorByte(org.bytedeco.pytorch.Tensor tensor)
+    private static RandomAccessibleInterval<ByteType> buildFromTensorByte(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] arrayShape = tensor.shape();
 		if (CommonUtils.int32Overflows(arrayShape, 1))
@@ -124,14 +89,7 @@ public class ImgLib2Builder {
 		return Utils.transpose(rai);
 	}
 
-	/**
-	 * Builds a {@link RandomAccessibleInterval} from a signed integer-typed {@link org.bytedeco.pytorch.Tensor}.
-	 * 
-	 * @param tensor 
-	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
-	 * @return The {@link RandomAccessibleInterval} built from the tensor of type {@link IntType}.
-	 */
-    public static RandomAccessibleInterval<IntType> buildFromTensorInt(org.bytedeco.pytorch.Tensor tensor)
+    private static RandomAccessibleInterval<IntType> buildFromTensorInt(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] arrayShape = tensor.shape();
 		if (CommonUtils.int32Overflows(arrayShape, 4))
@@ -147,14 +105,7 @@ public class ImgLib2Builder {
 		return Utils.transpose(rai);
     }
 
-	/**
-	 * Builds a {@link RandomAccessibleInterval} from a signed float-typed {@link org.bytedeco.pytorch.Tensor}.
-	 * 
-	 * @param tensor 
-	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
-	 * @return The {@link RandomAccessibleInterval} built from the tensor of type {@link FloatType}.
-	 */
-    public static RandomAccessibleInterval<FloatType> buildFromTensorFloat(org.bytedeco.pytorch.Tensor tensor)
+    private static RandomAccessibleInterval<FloatType> buildFromTensorFloat(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] arrayShape = tensor.shape();
 		if (CommonUtils.int32Overflows(arrayShape, 4))
@@ -170,14 +121,7 @@ public class ImgLib2Builder {
 		return Utils.transpose(rai);
     }
 
-	/**
-	 * Builds a {@link RandomAccessibleInterval} from a signed double-typed {@link org.bytedeco.pytorch.Tensor}.
-	 * 
-	 * @param tensor 
-	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
-	 * @return The {@link RandomAccessibleInterval} built from the tensor of type {@link DoubleType}.
-	 */
-    public static RandomAccessibleInterval<DoubleType> buildFromTensorDouble(org.bytedeco.pytorch.Tensor tensor)
+    private static RandomAccessibleInterval<DoubleType> buildFromTensorDouble(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] arrayShape = tensor.shape();
 		if (CommonUtils.int32Overflows(arrayShape, 8))
@@ -193,14 +137,7 @@ public class ImgLib2Builder {
 		return Utils.transpose(rai);
     }
 
-	/**
-	 * Builds a {@link RandomAccessibleInterval} from a signed long-typed {@link org.bytedeco.pytorch.Tensor}.
-	 * 
-	 * @param tensor 
-	 * 	The {@link org.bytedeco.pytorch.Tensor} data is read from.
-	 * @return The {@link RandomAccessibleInterval} built from the tensor of type {@link LongType}.
-	 */
-    public static RandomAccessibleInterval<LongType> buildFromTensorLong(org.bytedeco.pytorch.Tensor tensor)
+    private static RandomAccessibleInterval<LongType> buildFromTensorLong(org.bytedeco.pytorch.Tensor tensor)
     {
     	long[] arrayShape = tensor.shape();
 		if (CommonUtils.int32Overflows(arrayShape, 8))
