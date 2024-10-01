@@ -38,9 +38,8 @@ import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 
 /**
- * A {@link RandomAccessibleInterval} builder for TensorFlow {@link Tensor} objects.
- * Build ImgLib2 objects (backend of {@link io.bioimage.modelrunner.tensor.Tensor})
- * from Tensorflow 2 {@link Tensor}
+ * A utility class that converts {@link Tensor}s into {@link SharedMemoryArray}s for
+ * interprocessing communication
  * 
  * @author Carlos Garcia Lopez de Haro and Daniel Felipe Gonzalez Obando
  */
@@ -53,16 +52,15 @@ public final class ShmBuilder
     {
     }
 
-	/**
-	 * Creates a {@link RandomAccessibleInterval} from a given {@link TType} tensor
-	 * 
-	 * @param <T> 
-	 * 	the possible ImgLib2 datatypes of the image
-	 * @param tensor 
-	 * 	The {@link TType} tensor data is read from.
-	 * @throws IllegalArgumentException If the {@link TType} tensor type is not supported.
-	 * @throws IOException 
-	 */
+    /**
+     * Create a {@link SharedMemoryArray} from a {@link Tensor}
+     * @param tensor
+     * 	the tensor to be passed into the other process through the shared memory
+     * @param memoryName
+     * 	the name of the memory region where the tensor is going to be copied
+     * @throws IllegalArgumentException if the data type of the tensor is not supported
+     * @throws IOException if there is any error creating the shared memory array
+     */
 	public static void build(Tensor tensor, String memoryName) throws IllegalArgumentException, IOException
     {
         if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Byte)
@@ -81,14 +79,6 @@ public final class ShmBuilder
     	}
     }
 
-	/**
-	 * Builds a {@link RandomAccessibleInterval} from a unsigned byte-typed {@link TUint8} tensor.
-	 * 
-	 * @param tensor 
-	 * 	The {@link TUint8} tensor data is read from.
-	 * @return The {@link RandomAccessibleInterval} built from the tensor, of type {@link UnsignedByteType}.
-	 * @throws IOException 
-	 */
     private static void buildFromTensorByte(Tensor tensor, String memoryName) throws IOException
     {
     	long[] arrayShape = tensor.shape();
@@ -104,14 +94,6 @@ public final class ShmBuilder
         if (PlatformDetection.isWindows()) shma.close();
     }
 
-	/**
-	 * Builds a {@link RandomAccessibleInterval} from a unsigned int32-typed {@link TInt32} tensor.
-	 * 
-	 * @param tensor 
-	 * 	The {@link TInt32} tensor data is read from.
-	 * @return The {@link RandomAccessibleInterval} built from the tensor, of type {@link IntType}.
-	 * @throws IOException 
-	 */
     private static void buildFromTensorInt(Tensor tensor, String memoryName) throws IOException
     {
     	long[] arrayShape = tensor.shape();
@@ -129,14 +111,6 @@ public final class ShmBuilder
         if (PlatformDetection.isWindows()) shma.close();
     }
 
-	/**
-	 * Builds a {@link RandomAccessibleInterval} from a unsigned float32-typed {@link TFloat32} tensor.
-	 * 
-	 * @param tensor 
-	 * 	The {@link TFloat32} tensor data is read from.
-	 * @return The {@link RandomAccessibleInterval} built from the tensor, of type {@link FloatType}.
-	 * @throws IOException 
-	 */
     private static void buildFromTensorFloat(Tensor tensor, String memoryName) throws IOException
     {
     	long[] arrayShape = tensor.shape();
@@ -155,14 +129,6 @@ public final class ShmBuilder
         if (PlatformDetection.isWindows()) shma.close();
     }
 
-	/**
-	 * Builds a {@link RandomAccessibleInterval} from a unsigned float64-typed {@link TFloat64} tensor.
-	 * 
-	 * @param tensor 
-	 * 	The {@link TFloat64} tensor data is read from.
-	 * @return The {@link RandomAccessibleInterval} built from the tensor, of type {@link DoubleType}.
-	 * @throws IOException 
-	 */
     private static void buildFromTensorDouble(Tensor tensor, String memoryName) throws IOException
     {
     	long[] arrayShape = tensor.shape();
@@ -180,14 +146,6 @@ public final class ShmBuilder
         if (PlatformDetection.isWindows()) shma.close();
     }
 
-	/**
-	 * Builds a {@link RandomAccessibleInterval} from a unsigned int64-typed {@link TInt64} tensor.
-	 * 
-	 * @param tensor 
-	 * 	The {@link TInt64} tensor data is read from.
-	 * @return The {@link RandomAccessibleInterval} built from the tensor, of type {@link LongType}.
-	 * @throws IOException 
-	 */
     private static void buildFromTensorLong(Tensor tensor, String memoryName) throws IOException
     {
     	long[] arrayShape = tensor.shape();
