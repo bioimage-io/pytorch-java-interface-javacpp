@@ -30,12 +30,8 @@ import java.util.Arrays;
 
 import org.bytedeco.pytorch.Tensor;
 
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.integer.IntType;
-import net.imglib2.type.numeric.integer.LongType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
-import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.type.numeric.real.FloatType;
 
 /**
  * A utility class that converts {@link Tensor}s into {@link SharedMemoryArray}s for
