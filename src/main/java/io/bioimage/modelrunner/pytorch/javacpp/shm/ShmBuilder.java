@@ -25,12 +25,10 @@ import io.bioimage.modelrunner.tensor.shm.SharedMemoryArray;
 import io.bioimage.modelrunner.utils.CommonUtils;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import org.bytedeco.pytorch.Tensor;
 
-import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 
 /**
@@ -81,12 +79,8 @@ public final class ShmBuilder
 		if (CommonUtils.int32Overflows(arrayShape, 1))
 			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
 					+ " is too big. Max number of elements per ubyte output tensor supported: " + Integer.MAX_VALUE / 1);
-		long flatSize = 1;
-    	for (long l : arrayShape) {flatSize *= l;}
-    	byte[] flatArr = new byte[(int) flatSize];
-    	tensor.data_ptr_byte().get(flatArr);
 		SharedMemoryArray shma = SharedMemoryArray.readOrCreate(memoryName, arrayShape, new UnsignedByteType(), false, true);
-        shma.setBuffer(ByteBuffer.wrap(flatArr));
+    	tensor.data_ptr_byte().get(shma.getDataBufferNoHeader().array());
         if (PlatformDetection.isWindows()) shma.close();
     }
 
@@ -96,14 +90,8 @@ public final class ShmBuilder
 		if (CommonUtils.int32Overflows(arrayShape, 4))
 			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
 					+ " is too big. Max number of elements per int output tensor supported: " + Integer.MAX_VALUE / 4);
-		long flatSize = 1;
-    	for (long l : arrayShape) {flatSize *= l;}
-    	int[] flatArr = new int[(int) flatSize];
-    	tensor.data_ptr_int().get(flatArr);
-        SharedMemoryArray shma = SharedMemoryArray.readOrCreate(memoryName, arrayShape, new IntType(), false, true);
-        ByteBuffer byteBuffer = ByteBuffer.allocate(flatArr.length * Integer.BYTES);
-        byteBuffer.asIntBuffer().put(flatArr);
-        shma.setBuffer(byteBuffer);
+		SharedMemoryArray shma = SharedMemoryArray.readOrCreate(memoryName, arrayShape, new UnsignedByteType(), false, true);
+    	tensor.data_ptr_byte().get(shma.getDataBufferNoHeader().array());
         if (PlatformDetection.isWindows()) shma.close();
     }
 
@@ -113,15 +101,8 @@ public final class ShmBuilder
 		if (CommonUtils.int32Overflows(arrayShape, 4))
 			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
 					+ " is too big. Max number of elements per float output tensor supported: " + Integer.MAX_VALUE / 4);
-		long flatSize = 1;
-    	for (long l : arrayShape) {flatSize *= l;}
-    	float[] flatArr = new float[(int) flatSize];
-    	// TODO check what we get with tensor.data_ptr_byte().get(flatArr);
-    	tensor.data_ptr_float().get(flatArr);
-        SharedMemoryArray shma = SharedMemoryArray.readOrCreate(memoryName, arrayShape, new IntType(), false, true);
-        ByteBuffer byteBuffer = ByteBuffer.allocate(flatArr.length * Float.BYTES);
-        byteBuffer.asFloatBuffer().put(flatArr);
-        shma.setBuffer(byteBuffer);
+		SharedMemoryArray shma = SharedMemoryArray.readOrCreate(memoryName, arrayShape, new UnsignedByteType(), false, true);
+    	tensor.data_ptr_byte().get(shma.getDataBufferNoHeader().array());
         if (PlatformDetection.isWindows()) shma.close();
     }
 
@@ -131,14 +112,8 @@ public final class ShmBuilder
 		if (CommonUtils.int32Overflows(arrayShape, 8))
 			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
 					+ " is too big. Max number of elements per double output tensor supported: " + Integer.MAX_VALUE / 8);
-		long flatSize = 1;
-    	for (long l : arrayShape) {flatSize *= l;}
-    	double[] flatArr = new double[(int) flatSize];
-    	tensor.data_ptr_double().get(flatArr);
-        SharedMemoryArray shma = SharedMemoryArray.readOrCreate(memoryName, arrayShape, new IntType(), false, true);
-        ByteBuffer byteBuffer = ByteBuffer.allocate(flatArr.length * Double.BYTES);
-        byteBuffer.asDoubleBuffer().put(flatArr);
-        shma.setBuffer(byteBuffer);
+		SharedMemoryArray shma = SharedMemoryArray.readOrCreate(memoryName, arrayShape, new UnsignedByteType(), false, true);
+    	tensor.data_ptr_byte().get(shma.getDataBufferNoHeader().array());
         if (PlatformDetection.isWindows()) shma.close();
     }
 
@@ -148,14 +123,8 @@ public final class ShmBuilder
 		if (CommonUtils.int32Overflows(arrayShape, 8))
 			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
 					+ " is too big. Max number of elements per long output tensor supported: " + Integer.MAX_VALUE / 8);
-		long flatSize = 1;
-    	for (long l : arrayShape) {flatSize *= l;}
-    	long[] flatArr = new long[(int) flatSize];
-    	tensor.data_ptr_long().get(flatArr);
-        SharedMemoryArray shma = SharedMemoryArray.readOrCreate(memoryName, arrayShape, new IntType(), false, true);
-        ByteBuffer byteBuffer = ByteBuffer.allocate(flatArr.length * Long.BYTES);
-        byteBuffer.asLongBuffer().put(flatArr);
-        shma.setBuffer(byteBuffer);
+		SharedMemoryArray shma = SharedMemoryArray.readOrCreate(memoryName, arrayShape, new UnsignedByteType(), false, true);
+    	tensor.data_ptr_byte().get(shma.getDataBufferNoHeader().array());
         if (PlatformDetection.isWindows()) shma.close();
     }
 }
