@@ -94,6 +94,8 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	 */
 	private JitModule model;
 	
+	private String modelFolder;
+	
 	private String modelSource;
 	
 	private boolean interprocessing = true;
@@ -157,6 +159,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	 */
 	@Override
 	public void loadModel(String modelFolder, String modelSource) throws LoadModelException {
+		this.modelFolder = modelFolder;
 		this.modelSource = modelSource;
 		if (interprocessing) {
 			try {
@@ -177,7 +180,8 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	
 	private void launchModelLoadOnProcess() throws IOException, InterruptedException {
 		HashMap<String, Object> args = new HashMap<String, Object>();
-		args.put("modelFolder", this.modelSource);
+		args.put("modelFolder", this.modelFolder);
+		args.put("modelSource", this.modelSource);
 		Task task = runner.task("loadModel", args);
 		task.waitFor();
 		if (task.status == TaskStatus.CANCELED)
