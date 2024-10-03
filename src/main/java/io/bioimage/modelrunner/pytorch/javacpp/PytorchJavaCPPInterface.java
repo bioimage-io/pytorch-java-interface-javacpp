@@ -367,6 +367,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 			else if (task.status == TaskStatus.CRASHED)
 				throw new RuntimeException();
 			this.runner.close();
+			this.runner = null;
 			return;
 		} else if (this.interprocessing) {
 			return;
@@ -375,6 +376,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 			return;
 		model.close();
 		model.deallocate();
+		model = null;
 	}
 
 	/**
