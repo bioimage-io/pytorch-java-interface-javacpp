@@ -291,8 +291,8 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	void runInterprocessing(List<Tensor<T>> inputTensors, List<Tensor<R>> outputTensors) throws RunModelException {
 		shmaInputList = new ArrayList<SharedMemoryArray>();
 		shmaOutputList = new ArrayList<SharedMemoryArray>();
-		List<String> encIns = modifyForWinCmd(encodeInputs(inputTensors));
-		List<String> encOuts = modifyForWinCmd(encodeOutputs(outputTensors));
+		List<String> encIns = encodeInputs(inputTensors);
+		List<String> encOuts = encodeOutputs(outputTensors);
 		LinkedHashMap<String, Object> args = new LinkedHashMap<String, Object>();
 		args.put("inputs", encIns);
 		args.put("outputs", encOuts);
@@ -339,16 +339,6 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		});
 		shmaOutputList = null;
 	}
-	
-	private static List<String> modifyForWinCmd(List<String> ins){
-		if (!PlatformDetection.isWindows())
-			return ins;
-		List<String> newIns = new ArrayList<String>();
-		for (String ii : ins)
-			newIns.add("\"" + ii.replace("\"", "\\\"") + "\"");
-		return newIns;
-	}
-
 
 	/**
 	 * {@inheritDoc}
@@ -506,48 +496,6 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 
         return classpath;
     }
-	
-	/**
-	 * Create the arguments needed to execute Pytorch in another 
-	 * process with the corresponding tensors
-	 * @return the command used to call the separate process
-	 * @throws IOException if the command needed to execute interprocessing is too long
-	 * @throws URISyntaxException if there is any error with the URIs retrieved from the classes
-	 */
-	private List<String> getProcessCommandsWithoutArgs2() throws IOException, URISyntaxException {
-		String javaHome = System.getProperty("java.home");
-        String javaBin = javaHome +  File.separator + "bin" + File.separator + "java";
-
-        String modelrunnerPath = getPathFromClass(DeepLearningEngineInterface.class);
-        String imglib2Path = getPathFromClass(NativeType.class);
-        String gsonPath = getPathFromClass(Gson.class);
-        String jnaPath = getPathFromClass(com.sun.jna.Library.class);
-        String jnaPlatformPath = getPathFromClass(com.sun.jna.platform.FileUtils.class);
-        if (modelrunnerPath == null || (modelrunnerPath.endsWith("DeepLearningEngineInterface.class") 
-        		&& !modelrunnerPath.contains(File.pathSeparator)))
-        	modelrunnerPath = System.getProperty("java.class.path");
-        String classpath =  modelrunnerPath + File.pathSeparator + imglib2Path + File.pathSeparator;
-        classpath =  classpath + gsonPath + File.pathSeparator;
-        classpath =  classpath + jnaPath + File.pathSeparator;
-        classpath =  classpath + jnaPlatformPath + File.pathSeparator;
-        ProtectionDomain protectionDomain = PytorchJavaCPPInterface.class.getProtectionDomain();
-        String codeSource = protectionDomain.getCodeSource().getLocation().getPath();
-        String f_name = URLDecoder.decode(codeSource, StandardCharsets.UTF_8.toString());
-        f_name = new File(f_name).getAbsolutePath();
-        for (File ff : new File(f_name).getParentFile().listFiles()) {
-        	if (ff.getName().startsWith(JAR_FILE_NAME) && !ff.getAbsolutePath().equals(f_name))
-        		continue;
-        	classpath += ff.getAbsolutePath() + File.pathSeparator;
-        }
-        String className = PytorchJavaCPPInterface.class.getName();
-        List<String> command = new LinkedList<String>();
-        command.add(padSpecialJavaBin(javaBin));
-        command.add("-cp");
-        command.add(classpath);
-        command.add(className);
-        command.add(modelSource);
-        return command;
-	}
 	
 	/**
 	 * Method that gets the path to the JAR from where a specific class is being loaded
