@@ -85,7 +85,10 @@ public final class TensorBuilder {
 		if (!shmArray.isNumpyFormat())
 			throw new IllegalArgumentException("Shared memory arrays must be saved in numpy format.");
 		ByteBuffer buff = shmArray.getDataBufferNoHeader();
-		Tensor ndarray = Tensor.create(buff.array(), ogShape);
+		byte[] flat = new byte[buff.capacity()];
+		buff.get(flat);
+		buff.rewind();
+		Tensor ndarray = Tensor.create(flat, ogShape);
 		return ndarray;
 	}
 
@@ -99,7 +102,10 @@ public final class TensorBuilder {
 		if (!shmaArray.isNumpyFormat())
 			throw new IllegalArgumentException("Shared memory arrays must be saved in numpy format.");
 		ByteBuffer buff = shmaArray.getDataBufferNoHeader();
-		Tensor ndarray = Tensor.create(buff.asIntBuffer().array(), ogShape);
+		int[] flat = new int[buff.capacity() / 4];
+		buff.asIntBuffer().get(flat);
+		buff.rewind();
+		Tensor ndarray = Tensor.create(flat, ogShape);
 		return ndarray;
 	}
 
@@ -113,7 +119,10 @@ public final class TensorBuilder {
 		if (!shmArray.isNumpyFormat())
 			throw new IllegalArgumentException("Shared memory arrays must be saved in numpy format.");
 		ByteBuffer buff = shmArray.getDataBufferNoHeader();
-		Tensor ndarray = Tensor.create(buff.asLongBuffer().array(), ogShape);
+		long[] flat = new long[buff.capacity() / 8];
+		buff.asLongBuffer().get(flat);
+		buff.rewind();
+		Tensor ndarray = Tensor.create(flat, ogShape);
 		return ndarray;
 	}
 
@@ -127,7 +136,10 @@ public final class TensorBuilder {
 		if (!shmArray.isNumpyFormat())
 			throw new IllegalArgumentException("Shared memory arrays must be saved in numpy format.");
 		ByteBuffer buff = shmArray.getDataBufferNoHeader();
-		Tensor ndarray = Tensor.create(buff.asFloatBuffer().array(), ogShape);
+		float[] flat = new float[buff.capacity() / 4];
+		buff.asFloatBuffer().get(flat);
+		buff.rewind();
+		Tensor ndarray = Tensor.create(flat, ogShape);
 		return ndarray;
 	}
 
@@ -141,7 +153,10 @@ public final class TensorBuilder {
 		if (!shmArray.isNumpyFormat())
 			throw new IllegalArgumentException("Shared memory arrays must be saved in numpy format.");
 		ByteBuffer buff = shmArray.getDataBufferNoHeader();
-		Tensor ndarray = Tensor.create(buff.asDoubleBuffer().array(), ogShape);
+		double[] flat = new double[buff.capacity() / 8];
+		buff.asDoubleBuffer().get(flat);
+		buff.rewind();
+		Tensor ndarray = Tensor.create(flat, ogShape);
 		return ndarray;
 	}
 }
