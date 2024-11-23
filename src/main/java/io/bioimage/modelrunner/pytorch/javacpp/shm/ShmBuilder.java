@@ -107,10 +107,10 @@ public final class ShmBuilder
         tensor.asByteBuffer().rewind();
 		float sum = 0;
 		while (tensor.asByteBuffer().hasRemaining())
-			sum += tensor.asByteBuffer().getFloat();
+			sum += tensor.asByteBuffer().get();
 		float sum2 = 0;
 		while (shma.getDataBufferNoHeader().hasRemaining())
-			sum2 += shma.getDataBufferNoHeader().getFloat();
+			sum2 += shma.getDataBufferNoHeader().get();
 		System.out.println("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK  SRC  " + sum);
 		System.out.println("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK  TAR  " + sum2);
         shma.getDataBufferNoHeader().rewind();
