@@ -139,6 +139,10 @@ public final class TensorBuilder {
 		float[] flat = new float[buff.capacity() / 4];
 		buff.asFloatBuffer().get(flat);
 		buff.rewind();
+		float sum = 0;
+		for (float ff : flat)
+			sum += ff;
+		System.out.println("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK    " + sum);
 		Tensor ndarray = Tensor.create(flat, ogShape);
 		return ndarray;
 	}
