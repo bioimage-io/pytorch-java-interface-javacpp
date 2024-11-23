@@ -20,18 +20,21 @@
  */
 package io.bioimage.modelrunner.pytorch.javacpp.shm;
 
+import io.bioimage.modelrunner.pytorch.javacpp.tensor.ImgLib2Builder;
 import io.bioimage.modelrunner.system.PlatformDetection;
 import io.bioimage.modelrunner.tensor.shm.SharedMemoryArray;
 import io.bioimage.modelrunner.utils.CommonUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 import java.util.Arrays;
 
 import org.bytedeco.pytorch.Tensor;
 
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.LongType;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.integer.ByteType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -96,7 +99,8 @@ public final class ShmBuilder
 			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
 					+ " is too big. Max number of elements per int output tensor supported: " + Integer.MAX_VALUE / 4);
 		SharedMemoryArray shma = SharedMemoryArray.readOrCreate(memoryName, arrayShape, new IntType(), false, true);
-        shma.getDataBufferNoHeader().put(tensor.asByteBuffer());
+		RandomAccessibleInterval<?> rai = shma.getSharedRAI();
+		rai = ImgLib2Builder.build(tensor);
         if (PlatformDetection.isWindows()) shma.close();
     }
 
