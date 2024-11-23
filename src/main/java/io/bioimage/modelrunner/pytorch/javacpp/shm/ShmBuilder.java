@@ -117,7 +117,7 @@ public final class ShmBuilder
     	ByteBuffer byteBuffer = ByteBuffer.allocateDirect((int) (flatSize * Float.BYTES));
     	FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
     	tensor.data_ptr_float().get(flat);
-    	floatBuffer.put(flatSize);
+    	floatBuffer.put(flat);
     	byteBuffer.rewind();
         shma.getDataBufferNoHeader().put(byteBuffer);
         if (PlatformDetection.isWindows()) shma.close();
