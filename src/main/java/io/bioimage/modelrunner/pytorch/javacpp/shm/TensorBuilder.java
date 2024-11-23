@@ -138,7 +138,6 @@ public final class TensorBuilder {
 		ByteBuffer buff = shmArray.getDataBufferNoHeader();
 		float[] flat = new float[buff.capacity() / 4];
 		buff.asFloatBuffer().get(flat);
-		buff.rewind();
 		Tensor ndarray = Tensor.create(flat, ogShape);
 		return ndarray;
 	}
