@@ -103,6 +103,18 @@ public final class ShmBuilder
 					+ " is too big. Max number of elements per float output tensor supported: " + Integer.MAX_VALUE / 4);
 		SharedMemoryArray shma = SharedMemoryArray.readOrCreate(memoryName, arrayShape, new UnsignedByteType(), false, true);
         shma.getDataBufferNoHeader().put(tensor.asByteBuffer());
+        shma.getDataBufferNoHeader().rewind();
+        tensor.asByteBuffer().rewind();
+		float sum = 0;
+		while (tensor.asByteBuffer().hasRemaining())
+			sum += tensor.asByteBuffer().getFloat();
+		float sum2 = 0;
+		while (shma.getDataBufferNoHeader().hasRemaining())
+			sum2 += shma.getDataBufferNoHeader().getFloat();
+		System.out.println("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK  SRC  " + sum);
+		System.out.println("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK  TAR  " + sum2);
+        shma.getDataBufferNoHeader().rewind();
+        tensor.asByteBuffer().rewind();
         if (PlatformDetection.isWindows()) shma.close();
     }
 
