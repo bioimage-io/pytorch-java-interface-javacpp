@@ -68,14 +68,19 @@ public final class ShmBuilder
     {
         if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Byte)
     			|| tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Char)) {
+        	System.out.println("SSECRET_KEY :  BYTE ");
         	buildFromTensorByte(tensor, memoryName);
     	} else if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Int)) {
+        	System.out.println("SSECRET_KEY :  INT ");
         	buildFromTensorInt(tensor, memoryName);
     	} else if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Float)) {
+        	System.out.println("SSECRET_KEY :  FLOAT ");
         	buildFromTensorFloat(tensor, memoryName);
     	} else if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Double)) {
+        	System.out.println("SSECRET_KEY :  SOUBKE ");
         	buildFromTensorDouble(tensor, memoryName);
     	} else if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Long)) {
+        	System.out.println("SSECRET_KEY :  LONG ");
         	buildFromTensorLong(tensor, memoryName);
     	} else {
             throw new IllegalArgumentException("Unsupported tensor type: " + tensor.scalar_type());

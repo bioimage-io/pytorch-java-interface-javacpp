@@ -253,8 +253,10 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
         IValue output = model.forward(inputsVector);
         TensorVector outputTensorVector = null;
         if (output.isTensorList()) {
+        	System.out.println("SSECRET_KEY :  1 ");
         	outputTensorVector = output.toTensorVector();
         } else {
+        	System.out.println("SSECRET_KEY :  2 ");
         	outputTensorVector = new TensorVector();
         	outputTensorVector.put(output.toTensor());
         }
@@ -263,6 +265,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		int c = 0;
 		for (String ee : outputs) {
 			Map<String, Object> decoded = Types.decode(ee);
+			System.out.println("ENTERED: " + ee);
 			ShmBuilder.build(outputTensorVector.get(c ++), (String) decoded.get(MEM_NAME_KEY));
 		}
 		outputTensorVector.close();
