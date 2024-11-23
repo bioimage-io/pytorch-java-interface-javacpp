@@ -25,6 +25,7 @@ import io.bioimage.modelrunner.tensor.shm.SharedMemoryArray;
 import io.bioimage.modelrunner.utils.CommonUtils;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import org.bytedeco.pytorch.Tensor;
@@ -106,7 +107,11 @@ public final class ShmBuilder
 			throw new IllegalArgumentException("Model output tensor with shape " + Arrays.toString(arrayShape) 
 					+ " is too big. Max number of elements per float output tensor supported: " + Integer.MAX_VALUE / 4);
 		SharedMemoryArray shma = SharedMemoryArray.readOrCreate(memoryName, arrayShape, new FloatType(), false, true);
-        shma.getDataBufferNoHeader().put(tensor.asByteBuffer());
+		long flatSize = 1;
+    	for (long l : arrayShape) {flatSize *= l;}
+    	ByteBuffer byteBuffer = ByteBuffer.allocate((int) (flatSize * Float.BYTES));
+    	tensor.data_ptr_float().get(byteBuffer.asFloatBuffer().array());
+        shma.getDataBufferNoHeader().put(byteBuffer);
         if (PlatformDetection.isWindows()) shma.close();
     }
 
