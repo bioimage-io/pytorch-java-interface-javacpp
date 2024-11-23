@@ -239,17 +239,21 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	}
 	
 	protected void runFromShmas(List<String> inputs, List<String> outputs) throws IOException {
-		
+		System.out.println("REACH0");
 		IValueVector inputsVector = new IValueVector();
+		System.out.println("REACH1");
 		for (String ee : inputs) {
+			System.out.println("REACH2");
 			Map<String, Object> decoded = Types.decode(ee);
 			SharedMemoryArray shma = SharedMemoryArray.read((String) decoded.get(MEM_NAME_KEY));
 			org.bytedeco.pytorch.Tensor  inT = TensorBuilder.build(shma);
         	inputsVector.put(new IValue(inT));
 			if (PlatformDetection.isWindows()) shma.close();
 		}
+		System.out.println("REACH3");
         // Run model
 		model.eval();
+		System.out.println("REACH4");
         IValue output = model.forward(inputsVector);
         TensorVector outputTensorVector = null;
         if (output.isTensorList()) {
