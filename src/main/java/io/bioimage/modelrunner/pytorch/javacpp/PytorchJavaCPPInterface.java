@@ -253,10 +253,8 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
         IValue output = model.forward(inputsVector);
         TensorVector outputTensorVector = null;
         if (output.isTensorList()) {
-        	System.out.println("entered 1");
         	outputTensorVector = output.toTensorVector();
         } else {
-        	System.out.println("entered 2");
         	outputTensorVector = new TensorVector();
         	outputTensorVector.put(output.toTensor());
         }
@@ -264,7 +262,6 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		// Fill the agnostic output tensors list with data from the inference result
 		int c = 0;
 		for (String ee : outputs) {
-			System.out.println(ee);
 			Map<String, Object> decoded = Types.decode(ee);
 			ShmBuilder.build(outputTensorVector.get(c ++), (String) decoded.get(MEM_NAME_KEY));
 		}
