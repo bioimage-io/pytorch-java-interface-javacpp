@@ -134,6 +134,10 @@ public final class ShmBuilder
     	tensor.data_ptr_float().get(flat);
     	floatBuffer.put(flat);
     	byteBuffer.rewind();
+    	float sum = 0;
+    	for (float ff : flat)
+    		sum += ff;
+    	System.out.println("SUMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:   " + sum);
         shma.getDataBufferNoHeader().put(byteBuffer);
         if (PlatformDetection.isWindows()) shma.close();
     }
