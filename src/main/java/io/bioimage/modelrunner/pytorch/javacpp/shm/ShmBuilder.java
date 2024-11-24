@@ -69,19 +69,14 @@ public final class ShmBuilder
     {
         if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Byte)
     			|| tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Char)) {
-        	System.out.println("SSECRET_KEY :  BYTE ");
         	buildFromTensorByte(tensor, memoryName);
     	} else if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Int)) {
-        	System.out.println("SSECRET_KEY :  INT ");
         	buildFromTensorInt(tensor, memoryName);
     	} else if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Float)) {
-        	System.out.println("SSECRET_KEY :  FLOAT ");
         	buildFromTensorFloat(tensor, memoryName);
     	} else if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Double)) {
-        	System.out.println("SSECRET_KEY :  SOUBKE ");
         	buildFromTensorDouble(tensor, memoryName);
     	} else if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Long)) {
-        	System.out.println("SSECRET_KEY :  LONG ");
         	buildFromTensorLong(tensor, memoryName);
     	} else {
             throw new IllegalArgumentException("Unsupported tensor type: " + tensor.scalar_type());
@@ -98,10 +93,9 @@ public final class ShmBuilder
 		long flatSize = 1;
     	for (long l : arrayShape) {flatSize *= l;}
     	byte[] flat = new byte[(int) flatSize];
-    	ByteBuffer byteBuffer = ByteBuffer.allocateDirect((int) (flatSize));
+    	ByteBuffer byteBuffer = ByteBuffer.allocateDirect((int) (flatSize)).order(ByteOrder.LITTLE_ENDIAN);
     	tensor.data_ptr_byte().get(flat);
     	byteBuffer.put(flat);
-    	byteBuffer.rewind();
         shma.getDataBufferNoHeader().put(byteBuffer);
         if (PlatformDetection.isWindows()) shma.close();
     }
@@ -116,11 +110,10 @@ public final class ShmBuilder
 		long flatSize = 1;
     	for (long l : arrayShape) {flatSize *= l;}
     	int[] flat = new int[(int) flatSize];
-    	ByteBuffer byteBuffer = ByteBuffer.allocateDirect((int) (flatSize * Integer.BYTES));
+    	ByteBuffer byteBuffer = ByteBuffer.allocateDirect((int) (flatSize * Integer.BYTES)).order(ByteOrder.LITTLE_ENDIAN);
     	IntBuffer floatBuffer = byteBuffer.asIntBuffer();
     	tensor.data_ptr_int().get(flat);
     	floatBuffer.put(flat);
-    	byteBuffer.rewind();
         shma.getDataBufferNoHeader().put(byteBuffer);
         if (PlatformDetection.isWindows()) shma.close();
     }
@@ -140,10 +133,6 @@ public final class ShmBuilder
     	tensor.data_ptr_float().get(flat);
     	floatBuffer.put(flat);
         shma.getDataBufferNoHeader().put(byteBuffer);
-        System.out.println("equals  " + (shma.getDataBufferNoHeader().get(100) == byteBuffer.get(100)));
-        System.out.println("equals  " + (shma.getDataBufferNoHeader().get(500) == byteBuffer.get(500)));
-        System.out.println("equals  " + (shma.getDataBufferNoHeader().get(300) == byteBuffer.get(300)));
-        System.out.println("equals  " + (shma.getDataBufferNoHeader().get(1000) == byteBuffer.get(1000)));
         if (PlatformDetection.isWindows()) shma.close();
     }
 
@@ -157,11 +146,10 @@ public final class ShmBuilder
 		long flatSize = 1;
     	for (long l : arrayShape) {flatSize *= l;}
     	double[] flat = new double[(int) flatSize];
-    	ByteBuffer byteBuffer = ByteBuffer.allocateDirect((int) (flatSize * Double.BYTES));
+    	ByteBuffer byteBuffer = ByteBuffer.allocateDirect((int) (flatSize * Double.BYTES)).order(ByteOrder.LITTLE_ENDIAN);
     	DoubleBuffer floatBuffer = byteBuffer.asDoubleBuffer();
     	tensor.data_ptr_double().get(flat);
     	floatBuffer.put(flat);
-    	byteBuffer.rewind();
         shma.getDataBufferNoHeader().put(byteBuffer);
         if (PlatformDetection.isWindows()) shma.close();
     }
@@ -176,11 +164,10 @@ public final class ShmBuilder
 		long flatSize = 1;
     	for (long l : arrayShape) {flatSize *= l;}
     	long[] flat = new long[(int) flatSize];
-    	ByteBuffer byteBuffer = ByteBuffer.allocateDirect((int) (flatSize * Long.BYTES));
+    	ByteBuffer byteBuffer = ByteBuffer.allocateDirect((int) (flatSize * Long.BYTES)).order(ByteOrder.LITTLE_ENDIAN);
     	LongBuffer floatBuffer = byteBuffer.asLongBuffer();
     	tensor.data_ptr_long().get(flat);
     	floatBuffer.put(flat);
-    	byteBuffer.rewind();
         shma.getDataBufferNoHeader().put(byteBuffer);
         if (PlatformDetection.isWindows()) shma.close();
     }

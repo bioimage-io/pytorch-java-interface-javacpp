@@ -35,7 +35,6 @@ public class JavaWorker {
     		try {
 				pi = new PytorchJavaCPPInterface(false);
 			} catch (IOException | URISyntaxException e) {
-				e.printStackTrace();
 				return;
 			}
             
@@ -88,16 +87,11 @@ public class JavaWorker {
 		this.reportLaunch();
 		try {
 			if (script.equals("loadModel")) {
-				update("STATY IN WORKER LOAD LOAD", null, null);
 				pi.loadModel((String) inputs.get("modelFolder"), (String) inputs.get("modelSource"));
 			} else if (script.equals("inference")) {
-				update("STATY IN WORKER ------------RUN", null, null);
 				pi.runFromShmas((List<String>) inputs.get("inputs"), (List<String>) inputs.get("outputs"));
 			} else if (script.equals("close")) {
 				pi.closeModel();
-			} else {
-				update("LOL WTF", null, null);
-				update("LOL WTF -------------- " + script, null, null);
 			}
 		} catch(Exception | Error ex) {
 			this.fail(Types.stackTrace(ex));
