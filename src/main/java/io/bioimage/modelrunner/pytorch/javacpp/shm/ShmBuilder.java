@@ -26,6 +26,7 @@ import io.bioimage.modelrunner.utils.CommonUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -134,7 +135,7 @@ public final class ShmBuilder
 		long flatSize = 1;
     	for (long l : arrayShape) {flatSize *= l;}
     	float[] flat = new float[(int) flatSize];
-    	ByteBuffer byteBuffer = ByteBuffer.allocateDirect((int) (flatSize * Float.BYTES));
+    	ByteBuffer byteBuffer = ByteBuffer.allocateDirect((int) (flatSize * Float.BYTES)).order(ByteOrder.LITTLE_ENDIAN);
     	FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
     	tensor.data_ptr_float().get(flat);
     	floatBuffer.put(flat);
