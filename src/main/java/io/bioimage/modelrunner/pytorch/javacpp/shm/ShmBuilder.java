@@ -138,12 +138,11 @@ public final class ShmBuilder
     	FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
     	tensor.data_ptr_float().get(flat);
     	floatBuffer.put(flat);
-    	byteBuffer.rewind();
-    	float sum = 0;
-    	for (float ff : flat)
-    		sum += ff;
-    	System.out.println("SUMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:   " + sum);
         shma.getDataBufferNoHeader().put(byteBuffer);
+        System.out.println("equals  " + (shma.getDataBufferNoHeader().get(100) == byteBuffer.get(100)));
+        System.out.println("equals  " + (shma.getDataBufferNoHeader().get(500) == byteBuffer.get(500)));
+        System.out.println("equals  " + (shma.getDataBufferNoHeader().get(300) == byteBuffer.get(300)));
+        System.out.println("equals  " + (shma.getDataBufferNoHeader().get(1000) == byteBuffer.get(1000)));
         if (PlatformDetection.isWindows()) shma.close();
     }
 
