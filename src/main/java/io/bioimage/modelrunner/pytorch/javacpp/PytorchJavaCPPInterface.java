@@ -57,11 +57,14 @@ import io.bioimage.modelrunner.system.PlatformDetection;
 import io.bioimage.modelrunner.tensor.Tensor;
 import io.bioimage.modelrunner.tensor.shm.SharedMemoryArray;
 import io.bioimage.modelrunner.utils.CommonUtils;
+import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.loops.LoopBuilder;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Cast;
 import net.imglib2.util.Util;
+import net.imglib2.view.Views;
 
 /**
  * This class implements an interface that allows the main plugin to interact in
@@ -316,8 +319,30 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	        		shm = SharedMemoryArray.read(name);
 	        		shmaOutputList.add(shm);
 	        	}
-	        	RandomAccessibleInterval<?> rai = shm.getSharedRAI();
+	        	RandomAccessibleInterval<T> rai = shm.getSharedRAI();
+	        	// TODO remove
+	        	double max0 = 0;
+	        	Cursor<T> iter0 = Views.iterable(rai).cursor();
+	        	while (iter0.hasNext()) {
+	        		iter0.next();
+	        		double doub = iter0.get().getRealDouble();
+	        		if (doub > max0)
+	        			max0 = doub;
+	        	}
+	        	System.out.println("Output SHM " + i + " max value: " + max0);
+	        	// TODO remove
 	        	outputTensors.get(i).setData(Tensor.createCopyOfRaiInWantedDataType(Cast.unchecked(rai), Util.getTypeFromInterval(Cast.unchecked(rai))));
+	        	// TODO remove
+	        	double max = 0;
+	        	Cursor<R> iter = Views.iterable(outputTensors.get(i).getData()).cursor();
+	        	while (iter.hasNext()) {
+	        		iter.next();
+	        		double doub = iter.get().getRealDouble();
+	        		if (doub > max)
+	        			max = doub;
+	        	}
+	        	System.out.println("Copied ouput " + i + " max value: " + max);
+	        	// TODO remove
 	        }
 		} catch (Exception e) {
 			closeShmas();

@@ -23,7 +23,9 @@ package io.bioimage.modelrunner.pytorch.javacpp.shm;
 
 import io.bioimage.modelrunner.tensor.shm.SharedMemoryArray;
 import io.bioimage.modelrunner.utils.CommonUtils;
+import net.imglib2.Cursor;
 import net.imglib2.util.Cast;
+import net.imglib2.view.Views;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -139,6 +141,15 @@ public final class TensorBuilder {
 		float[] flat = new float[buff.capacity() / 4];
 		buff.asFloatBuffer().get(flat);
 		Tensor ndarray = Tensor.create(flat, ogShape);
+
+    	// TODO remove
+    	double max0 = 0;
+    	for (float ff : flat) {
+    		if (ff > max0)
+    			max0 = ff;
+    	}
+    	System.out.println("Input max: " + max0);
+    	// TODO remove
 		return ndarray;
 	}
 
