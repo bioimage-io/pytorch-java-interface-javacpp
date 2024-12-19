@@ -29,6 +29,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -59,7 +60,6 @@ import io.bioimage.modelrunner.tensor.shm.SharedMemoryArray;
 import io.bioimage.modelrunner.utils.CommonUtils;
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.loops.LoopBuilder;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Cast;
@@ -245,6 +245,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		IValueVector inputsVector = new IValueVector();
 		for (String ee : inputs) {
 			Map<String, Object> decoded = Types.decode(ee);
+			System.out.println("MM: -> " + ee);
 			SharedMemoryArray shma = SharedMemoryArray.read((String) decoded.get(MEM_NAME_KEY));
 			org.bytedeco.pytorch.Tensor  inT = TensorBuilder.build(shma);
         	inputsVector.put(new IValue(inT));
@@ -320,6 +321,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	        		shmaOutputList.add(shm);
 	        	}
 	        	RandomAccessibleInterval<T> rai = shm.getSharedRAI();
+				System.out.println("Output size: " + Arrays.asList(rai.dimensionsAsLongArray()));
 	        	// TODO remove
 	        	double max0 = 0;
 	        	Cursor<T> iter0 = Views.iterable(rai).cursor();
@@ -430,6 +432,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		List<String> encodedInputTensors = new ArrayList<String>();
 		Gson gson = new Gson();
 		for (Tensor<T> tt : inputTensors) {
+			System.out.println("Input size: " + Arrays.asList(tt.getData().dimensionsAsLongArray()));
 			SharedMemoryArray shma = SharedMemoryArray.createSHMAFromRAI(tt.getData(), false, true);
 			shmaInputList.add(shma);
 			HashMap<String, Object> map = new HashMap<String, Object>();
