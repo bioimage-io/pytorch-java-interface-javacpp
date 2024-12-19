@@ -25,6 +25,7 @@ import io.bioimage.modelrunner.tensor.shm.SharedMemoryArray;
 import io.bioimage.modelrunner.utils.CommonUtils;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 
 import org.bytedeco.pytorch.Tensor;
@@ -134,7 +135,7 @@ public final class TensorBuilder {
 								+ " is too big. Max number of elements per ubyte tensor supported: " + Integer.MAX_VALUE);
 		if (!shmArray.isNumpyFormat())
 			throw new IllegalArgumentException("Shared memory arrays must be saved in numpy format.");
-		ByteBuffer buff = shmArray.getDataBufferNoHeader();
+		ByteBuffer buff = shmArray.getDataBufferNoHeader().order(ByteOrder.LITTLE_ENDIAN);
 		float[] flat = new float[buff.capacity() / 4];
 		buff.asFloatBuffer().get(flat);
 		Tensor ndarray = Tensor.create(flat, ogShape);
