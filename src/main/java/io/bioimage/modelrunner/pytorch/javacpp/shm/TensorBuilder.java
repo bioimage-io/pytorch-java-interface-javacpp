@@ -23,9 +23,6 @@ package io.bioimage.modelrunner.pytorch.javacpp.shm;
 
 import io.bioimage.modelrunner.tensor.shm.SharedMemoryArray;
 import io.bioimage.modelrunner.utils.CommonUtils;
-import net.imglib2.Cursor;
-import net.imglib2.util.Cast;
-import net.imglib2.view.Views;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -58,19 +55,19 @@ public final class TensorBuilder {
 	{
 		// Create an Icy sequence of the same type of the tensor
 		if (array.getOriginalDataType().equals("int8")) {
-			return buildByte(Cast.unchecked(array));
+			return buildByte(array);
 		}
 		else if (array.getOriginalDataType().equals("int32")) {
-			return buildInt(Cast.unchecked(array));
+			return buildInt(array);
 		}
 		else if (array.getOriginalDataType().equals("float32")) {
-			return buildFloat(Cast.unchecked(array));
+			return buildFloat(array);
 		}
 		else if (array.getOriginalDataType().equals("float64")) {
-			return buildDouble(Cast.unchecked(array));
+			return buildDouble(array);
 		}
 		else if (array.getOriginalDataType().equals("int64")) {
-			return buildLong(Cast.unchecked(array));
+			return buildLong(array);
 		}
 		else {
 			throw new IllegalArgumentException("Unsupported tensor type: " + array.getOriginalDataType());
