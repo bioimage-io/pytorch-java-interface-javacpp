@@ -306,7 +306,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 			if (task.status == TaskStatus.CANCELED)
 				throw new RuntimeException();
 			else if (task.status == TaskStatus.FAILED)
-				throw new RuntimeException();
+				throw new RuntimeException(task.error);
 			else if (task.status == TaskStatus.CRASHED) {
 				this.runner.close();
 				runner = null;
