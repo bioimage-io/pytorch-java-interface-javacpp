@@ -321,7 +321,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	        		shmaOutputList.add(shm);
 	        	}
 	        	RandomAccessibleInterval<T> rai = shm.getSharedRAI();
-				System.out.println("Output size: " + Arrays.asList(rai.dimensionsAsLongArray()));
+				System.out.println("Output size: " + Arrays.toString(rai.dimensionsAsLongArray()));
 	        	// TODO remove
 	        	double max0 = 0;
 	        	Cursor<T> iter0 = Views.iterable(rai).cursor();
@@ -432,7 +432,16 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		List<String> encodedInputTensors = new ArrayList<String>();
 		Gson gson = new Gson();
 		for (Tensor<T> tt : inputTensors) {
-			System.out.println("Input size: " + Arrays.asList(tt.getData().dimensionsAsLongArray()));
+			System.out.println("Input size: " + Arrays.toString(tt.getData().dimensionsAsLongArray()));
+        	double max0 = 0;
+        	Cursor<T> iter0 = Views.iterable(tt.getData()).cursor();
+        	while (iter0.hasNext()) {
+        		iter0.next();
+        		double doub = iter0.get().getRealDouble();
+        		if (doub > max0)
+        			max0 = doub;
+        	}
+			System.out.println("Input max: " + max0);
 			SharedMemoryArray shma = SharedMemoryArray.createSHMAFromRAI(tt.getData(), false, true);
 			shmaInputList.add(shma);
 			HashMap<String, Object> map = new HashMap<String, Object>();
