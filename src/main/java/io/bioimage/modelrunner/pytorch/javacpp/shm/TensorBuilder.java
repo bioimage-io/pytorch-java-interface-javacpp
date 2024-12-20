@@ -139,15 +139,6 @@ public final class TensorBuilder {
 		float[] flat = new float[buff.capacity() / 4];
 		buff.asFloatBuffer().get(flat);
 		Tensor ndarray = Tensor.create(flat, ogShape);
-
-    	// TODO remove
-    	double max0 = 0;
-    	for (float ff : flat) {
-    		if (ff > max0)
-    			max0 = ff;
-    	}
-    	System.out.println("Input max: " + max0);
-    	// TODO remove
 		return ndarray;
 	}
 

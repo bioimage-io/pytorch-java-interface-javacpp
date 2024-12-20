@@ -29,7 +29,6 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -58,13 +57,11 @@ import io.bioimage.modelrunner.system.PlatformDetection;
 import io.bioimage.modelrunner.tensor.Tensor;
 import io.bioimage.modelrunner.tensor.shm.SharedMemoryArray;
 import io.bioimage.modelrunner.utils.CommonUtils;
-import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Cast;
 import net.imglib2.util.Util;
-import net.imglib2.view.Views;
 
 /**
  * This class implements an interface that allows the main plugin to interact in
@@ -190,11 +187,11 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		if (task.status == TaskStatus.CANCELED)
 			throw new RuntimeException();
 		else if (task.status == TaskStatus.FAILED)
-			throw new RuntimeException();
+			throw new RuntimeException(task.error);
 		else if (task.status == TaskStatus.CRASHED) {
 			this.runner.close();
 			runner = null;
-			throw new RuntimeException();
+			throw new RuntimeException(task.error);
 		}
 	}
 
@@ -245,7 +242,6 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		IValueVector inputsVector = new IValueVector();
 		for (String ee : inputs) {
 			Map<String, Object> decoded = Types.decode(ee);
-			System.out.println("MM: -> " + ee);
 			SharedMemoryArray shma = SharedMemoryArray.read((String) decoded.get(MEM_NAME_KEY));
 			org.bytedeco.pytorch.Tensor  inT = TensorBuilder.build(shma);
         	inputsVector.put(new IValue(inT));
@@ -310,7 +306,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 			else if (task.status == TaskStatus.CRASHED) {
 				this.runner.close();
 				runner = null;
-				throw new RuntimeException();
+				throw new RuntimeException(task.error);
 			}
 			for (int i = 0; i < outputTensors.size(); i ++) {
 	        	String name = (String) Types.decode(encOuts.get(i)).get(MEM_NAME_KEY);
@@ -321,30 +317,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	        		shmaOutputList.add(shm);
 	        	}
 	        	RandomAccessibleInterval<T> rai = shm.getSharedRAI();
-				System.out.println("Output size: " + Arrays.toString(rai.dimensionsAsLongArray()));
-	        	// TODO remove
-	        	double max0 = 0;
-	        	Cursor<T> iter0 = Views.iterable(rai).cursor();
-	        	while (iter0.hasNext()) {
-	        		iter0.next();
-	        		double doub = iter0.get().getRealDouble();
-	        		if (doub > max0)
-	        			max0 = doub;
-	        	}
-	        	System.out.println("Output SHM " + i + " max value: " + max0);
-	        	// TODO remove
 	        	outputTensors.get(i).setData(Tensor.createCopyOfRaiInWantedDataType(Cast.unchecked(rai), Util.getTypeFromInterval(Cast.unchecked(rai))));
-	        	// TODO remove
-	        	double max = 0;
-	        	Cursor<R> iter = Views.iterable(outputTensors.get(i).getData()).cursor();
-	        	while (iter.hasNext()) {
-	        		iter.next();
-	        		double doub = iter.get().getRealDouble();
-	        		if (doub > max)
-	        			max = doub;
-	        	}
-	        	System.out.println("Copied ouput " + i + " max value: " + max);
-	        	// TODO remove
 	        }
 		} catch (Exception e) {
 			closeShmas();
@@ -385,11 +358,11 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 			if (task.status == TaskStatus.CANCELED)
 				throw new RuntimeException();
 			else if (task.status == TaskStatus.FAILED)
-				throw new RuntimeException();
+				throw new RuntimeException(task.error);
 			else if (task.status == TaskStatus.CRASHED) {
 				this.runner.close();
 				runner = null;
-				throw new RuntimeException();
+				throw new RuntimeException(task.error);
 			}
 			this.runner.close();
 			this.runner = null;
@@ -432,16 +405,6 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		List<String> encodedInputTensors = new ArrayList<String>();
 		Gson gson = new Gson();
 		for (Tensor<T> tt : inputTensors) {
-			System.out.println("Input size: " + Arrays.toString(tt.getData().dimensionsAsLongArray()));
-        	double max0 = 0;
-        	Cursor<T> iter0 = Views.iterable(tt.getData()).cursor();
-        	while (iter0.hasNext()) {
-        		iter0.next();
-        		double doub = iter0.get().getRealDouble();
-        		if (doub > max0)
-        			max0 = doub;
-        	}
-			System.out.println("Input max: " + max0);
 			SharedMemoryArray shma = SharedMemoryArray.createSHMAFromRAI(tt.getData(), false, true);
 			shmaInputList.add(shma);
 			HashMap<String, Object> map = new HashMap<String, Object>();
