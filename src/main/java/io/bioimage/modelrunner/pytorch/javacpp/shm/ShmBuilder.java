@@ -67,23 +67,39 @@ public final class ShmBuilder
      */
 	public static void build(Tensor tensor, String memoryName) throws IllegalArgumentException, IOException
     {
+		build(tensor, memoryName, true);
+    }
+
+    /**
+     * Create a {@link SharedMemoryArray} from a {@link Tensor}
+     * @param tensor
+     * 	the tensor to be passed into the other process through the shared memory
+     * @param memoryName
+     * 	the name of the memory region where the tensor is going to be copied
+     * @param close
+     * 	on Windows, whether to close the shma after reading or creating it
+     * @throws IllegalArgumentException if the data type of the tensor is not supported
+     * @throws IOException if there is any error creating the shared memory array
+     */
+	public static void build(Tensor tensor, String memoryName, boolean close) throws IllegalArgumentException, IOException
+    {
         if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Byte)
     			|| tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Char)) {
-        	buildFromTensorByte(tensor, memoryName);
+        	buildFromTensorByte(tensor, memoryName,  close);
     	} else if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Int)) {
-        	buildFromTensorInt(tensor, memoryName);
+        	buildFromTensorInt(tensor, memoryName,  close);
     	} else if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Float)) {
-        	buildFromTensorFloat(tensor, memoryName);
+        	buildFromTensorFloat(tensor, memoryName,  close);
     	} else if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Double)) {
-        	buildFromTensorDouble(tensor, memoryName);
+        	buildFromTensorDouble(tensor, memoryName,  close);
     	} else if (tensor.dtype().isScalarType(org.bytedeco.pytorch.global.torch.ScalarType.Long)) {
-        	buildFromTensorLong(tensor, memoryName);
+        	buildFromTensorLong(tensor, memoryName,  close);
     	} else {
             throw new IllegalArgumentException("Unsupported tensor type: " + tensor.scalar_type());
     	}
     }
 
-    private static void buildFromTensorByte(Tensor tensor, String memoryName) throws IOException
+    private static void buildFromTensorByte(Tensor tensor, String memoryName, boolean close) throws IOException
     {
     	long[] arrayShape = tensor.shape();
 		if (CommonUtils.int32Overflows(arrayShape, 1))
@@ -97,10 +113,10 @@ public final class ShmBuilder
     	tensor.data_ptr_byte().get(flat);
     	byteBuffer.put(flat);
         shma.getDataBufferNoHeader().put(byteBuffer);
-        if (PlatformDetection.isWindows()) shma.close();
+        if (PlatformDetection.isWindows() && close) shma.close();
     }
 
-    private static void buildFromTensorInt(Tensor tensor, String memoryName) throws IOException
+    private static void buildFromTensorInt(Tensor tensor, String memoryName, boolean close) throws IOException
     {
     	long[] arrayShape = tensor.shape();
 		if (CommonUtils.int32Overflows(arrayShape, 4))
@@ -115,10 +131,10 @@ public final class ShmBuilder
     	tensor.data_ptr_int().get(flat);
     	floatBuffer.put(flat);
         shma.getDataBufferNoHeader().put(byteBuffer);
-        if (PlatformDetection.isWindows()) shma.close();
+        if (PlatformDetection.isWindows() && close) shma.close();
     }
 
-    private static void buildFromTensorFloat(Tensor tensor, String memoryName) throws IOException
+    private static void buildFromTensorFloat(Tensor tensor, String memoryName, boolean close) throws IOException
     {
     	long[] arrayShape = tensor.shape();
 		if (CommonUtils.int32Overflows(arrayShape, 4))
@@ -133,10 +149,10 @@ public final class ShmBuilder
     	tensor.data_ptr_float().get(flat);
     	floatBuffer.put(flat);
         shma.getDataBufferNoHeader().put(byteBuffer);
-        if (PlatformDetection.isWindows()) shma.close();
+        if (PlatformDetection.isWindows() && close) shma.close();
     }
 
-    private static void buildFromTensorDouble(Tensor tensor, String memoryName) throws IOException
+    private static void buildFromTensorDouble(Tensor tensor, String memoryName, boolean close) throws IOException
     {
     	long[] arrayShape = tensor.shape();
 		if (CommonUtils.int32Overflows(arrayShape, 8))
@@ -151,10 +167,10 @@ public final class ShmBuilder
     	tensor.data_ptr_double().get(flat);
     	floatBuffer.put(flat);
         shma.getDataBufferNoHeader().put(byteBuffer);
-        if (PlatformDetection.isWindows()) shma.close();
+        if (PlatformDetection.isWindows() && close) shma.close();
     }
 
-    private static void buildFromTensorLong(Tensor tensor, String memoryName) throws IOException
+    private static void buildFromTensorLong(Tensor tensor, String memoryName, boolean close) throws IOException
     {
     	long[] arrayShape = tensor.shape();
 		if (CommonUtils.int32Overflows(arrayShape, 8))
@@ -169,6 +185,6 @@ public final class ShmBuilder
     	tensor.data_ptr_long().get(flat);
     	floatBuffer.put(flat);
         shma.getDataBufferNoHeader().put(byteBuffer);
-        if (PlatformDetection.isWindows()) shma.close();
+        if (PlatformDetection.isWindows() && close) shma.close();
     }
 }

@@ -237,6 +237,52 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		inputsVector.close();
 		inputsVector.deallocate();		
 	}
+
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * Run a Pytorch model using JavaCpp on the data provided by the {@link Tensor} input list
+	 * and modifies the output list with the results obtained
+	 * 
+	 */
+	public <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>> 
+	List<RandomAccessibleInterval<R>> inference(List<RandomAccessibleInterval<T>> inputs) throws RunModelException {
+		if (interprocessing) {
+			return runInterprocessing(inputs);
+		}
+		IValueVector inputsVector = new IValueVector();
+        for (RandomAccessibleInterval<T> tt : inputs) {
+        	inputsVector.put(new IValue(JavaCPPTensorBuilder.build(tt)));
+        }
+        // Run model
+		model.eval();
+        IValue output = model.forward(inputsVector);
+        TensorVector outputTensorVector = null;
+        if (output.isTensorList()) {
+        	outputTensorVector = output.toTensorVector();
+        } else {
+        	outputTensorVector = new TensorVector();
+        	outputTensorVector.put(output.toTensor());
+        }
+		// Fill the agnostic output tensors list with data from the inference result
+        List<RandomAccessibleInterval<R>> rais = new ArrayList<RandomAccessibleInterval<R>>();
+		for (int i = 0; i < outputTensorVector.size(); i ++) {
+			rais.add(ImgLib2Builder.build(outputTensorVector.get(i)));
+			outputTensorVector.get(i).close();
+			outputTensorVector.get(i).deallocate();
+		}
+		outputTensorVector.close();
+		outputTensorVector.deallocate();
+		output.close();
+		output.deallocate();
+		for (int i = 0; i < inputsVector.size(); i ++) {
+			inputsVector.get(i).close();
+			inputsVector.get(i).deallocate();
+		}
+		inputsVector.close();
+		inputsVector.deallocate();
+		return rais;
+	}
 	
 	protected void runFromShmas(List<String> inputs, List<String> outputs) throws IOException {
 		IValueVector inputsVector = new IValueVector();
@@ -276,17 +322,46 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		inputsVector.deallocate();	
 	}
 	
-	/**
-	 * MEthod only used in MacOS Intel and Windows systems that makes all the arrangements
-	 * to create another process, communicate the model info and tensors to the other 
-	 * process and then retrieve the results of the other process
-	 * @param inputTensors
-	 * 	tensors that are going to be run on the model
-	 * @param outputTensors
-	 * 	expected results of the model
-	 * @throws RunModelException if there is any issue running the model
-	 */
-	public <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>
+	protected List<String> inferenceFromShmas(List<String> inputs) throws IOException, RunModelException {
+		IValueVector inputsVector = new IValueVector();
+		for (String ee : inputs) {
+			Map<String, Object> decoded = Types.decode(ee);
+			SharedMemoryArray shma = SharedMemoryArray.read((String) decoded.get(MEM_NAME_KEY));
+			org.bytedeco.pytorch.Tensor  inT = TensorBuilder.build(shma);
+        	inputsVector.put(new IValue(inT));
+			if (PlatformDetection.isWindows()) shma.close();
+		}
+        // Run model
+		model.eval();
+        IValue output = model.forward(inputsVector);
+        TensorVector outputTensorVector = null;
+        if (output.isTensorList()) {
+        	outputTensorVector = output.toTensorVector();
+        } else {
+        	outputTensorVector = new TensorVector();
+        	outputTensorVector.put(output.toTensor());
+        }
+
+		shmaNamesList = new ArrayList<String>();
+		for (int i = 0; i < outputTensorVector.size(); i ++) {
+			String name = SharedMemoryArray.createShmName();
+			ShmBuilder.build(outputTensorVector.get(i), name, false);
+			shmaNamesList.add(name);
+		}
+		outputTensorVector.close();
+		outputTensorVector.deallocate();
+		output.close();
+		output.deallocate();
+		for (int i = 0; i < inputsVector.size(); i ++) {
+			inputsVector.get(i).close();
+			inputsVector.get(i).deallocate();
+		}
+		inputsVector.close();
+		inputsVector.deallocate();	
+		return shmaNamesList;
+	}
+	
+	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>
 	void runInterprocessing(List<Tensor<T>> inputTensors, List<Tensor<R>> outputTensors) throws RunModelException {
 		shmaInputList = new ArrayList<SharedMemoryArray>();
 		shmaOutputList = new ArrayList<SharedMemoryArray>();
@@ -297,7 +372,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		args.put("outputs", encOuts);
 
 		try {
-			Task task = runner.task("inference", args);
+			Task task = runner.task("run", args);
 			task.waitFor();
 			if (task.status == TaskStatus.CANCELED)
 				throw new RuntimeException();
@@ -328,7 +403,89 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		closeShmas();
 	}
 	
-	private void closeShmas() {
+	private <T extends RealType<T> & NativeType<T>, R extends RealType<R> & NativeType<R>>
+	List<RandomAccessibleInterval<R>> runInterprocessing(List<RandomAccessibleInterval<T>> inputs) throws RunModelException {
+		shmaInputList = new ArrayList<SharedMemoryArray>();
+		List<String> encIns = new ArrayList<String>();
+		Gson gson = new Gson();
+		for (RandomAccessibleInterval<T> tt : inputs) {
+			SharedMemoryArray shma = SharedMemoryArray.createSHMAFromRAI(tt, false, true);
+			shmaInputList.add(shma);
+			HashMap<String, Object> map = new HashMap<String, Object>();
+			map.put(SHAPE_KEY, tt.dimensionsAsLongArray());
+			map.put(DTYPE_KEY, CommonUtils.getDataTypeFromRAI(tt));
+			map.put(IS_INPUT_KEY, true);
+			map.put(MEM_NAME_KEY, shma.getName());
+			encIns.add(gson.toJson(map));
+		}
+		LinkedHashMap<String, Object> args = new LinkedHashMap<String, Object>();
+		args.put("inputs", encIns);
+
+		try {
+			Task task = runner.task("inference", args);
+			task.waitFor();
+			if (task.status == TaskStatus.CANCELED)
+				throw new RuntimeException();
+			else if (task.status == TaskStatus.FAILED)
+				throw new RuntimeException(task.error);
+			else if (task.status == TaskStatus.CRASHED) {
+				this.runner.close();
+				runner = null;
+				throw new RuntimeException(task.error);
+			} else if (task.outputs == null)
+				throw new RuntimeException("No outputs generated");
+			List<String> outputs = (List<String>) task.outputs.get("encoded");
+			List<RandomAccessibleInterval<R>> rais = new ArrayList<RandomAccessibleInterval<R>>();
+			for (String out : outputs) {
+	        	String name = (String) Types.decode(out).get(MEM_NAME_KEY);
+	        	SharedMemoryArray shm = SharedMemoryArray.read(name);
+	        	RandomAccessibleInterval<R> rai = shm.getSharedRAI();
+	        	rais.add(Tensor.createCopyOfRaiInWantedDataType(Cast.unchecked(rai), Util.getTypeFromInterval(Cast.unchecked(rai))));
+	        	shm.close();
+			}
+			closeShmas();
+			return rais;
+		} catch (Exception e) {
+			closeShmas();
+			if (e instanceof RunModelException)
+				throw (RunModelException) e;
+			throw new RunModelException(Types.stackTrace(e));
+		}
+	}
+	
+	private void closeInterprocess() throws RunModelException {
+		try {
+			Task task = runner.task("closeTensors");
+			task.waitFor();
+			if (task.status == TaskStatus.CANCELED)
+				throw new RuntimeException();
+			else if (task.status == TaskStatus.FAILED)
+				throw new RuntimeException(task.error);
+			else if (task.status == TaskStatus.CRASHED) {
+				this.runner.close();
+				runner = null;
+				throw new RuntimeException(task.error);
+			}
+		} catch (Exception e) {
+			if (e instanceof RunModelException)
+				throw (RunModelException) e;
+			throw new RunModelException(Types.stackTrace(e));
+		}
+	}
+	
+	protected void closeFromInterp() {
+		if (!PlatformDetection.isWindows())
+			return;
+		this.shmaNamesList.stream().forEach(nn -> {
+			try {
+				SharedMemoryArray.read(nn).close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		});
+	}
+	
+	private void closeShmas() throws RunModelException {
 		shmaInputList.forEach(shm -> {
 			try { shm.close(); } catch (IOException e1) { e1.printStackTrace();}
 		});
@@ -337,6 +494,8 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 			try { shm.close(); } catch (IOException e1) { e1.printStackTrace();}
 		});
 		shmaOutputList = null;
+		if (interprocessing)
+			closeInterprocess();
 	}
 
 	/**
