@@ -42,15 +42,13 @@ import org.bytedeco.pytorch.TensorVector;
 
 import com.google.gson.Gson;
 
-import org.apposed.appose.Service;
-import org.apposed.appose.Service.Task;
-import org.apposed.appose.Service.TaskStatus;
-import org.apposed.appose.TaskException;
-import org.apposed.appose.util.Messages;
-
 import io.bioimage.modelrunner.engine.DeepLearningEngineInterface;
 import io.bioimage.modelrunner.exceptions.LoadModelException;
 import io.bioimage.modelrunner.exceptions.RunModelException;
+import io.bioimage.modelrunner.javaworker.Messages;
+import io.bioimage.modelrunner.javaworker.NoGroovyJavaService;
+import io.bioimage.modelrunner.javaworker.NoGroovyTask;
+import io.bioimage.modelrunner.javaworker.NoGroovyTask.TaskStatus;
 import io.bioimage.modelrunner.pytorch.javacpp.tensor.ImgLib2Builder;
 import io.bioimage.modelrunner.pytorch.javacpp.tensor.JavaCPPTensorBuilder;
 import io.bioimage.modelrunner.pytorch.javacpp.shm.ShmBuilder;
@@ -104,7 +102,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     /**
      * Process where the model is being loaded and executed
      */
-    Service runner;
+    NoGroovyJavaService runner;
 
 	private List<SharedMemoryArray> shmaInputList = new ArrayList<SharedMemoryArray>();
 	private List<SharedMemoryArray> shmaOutputList = new ArrayList<SharedMemoryArray>();
@@ -146,12 +144,10 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		}
     }
     
-    private Service getRunner() throws IOException, URISyntaxException {
+    private NoGroovyJavaService getRunner() throws IOException, URISyntaxException {
 		List<String> args = getProcessCommandsWithoutArgs();
-		String[] argArr = new String[args.size()];
-		args.toArray(argArr);
 
-		return new Service(new File("."), argArr);
+		return new NoGroovyJavaService(new File("."), null, args);
     }
 
 	/**
@@ -166,7 +162,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		if (interprocessing) {
 			try {
 				launchModelLoadOnProcess();
-			} catch (IOException | InterruptedException | TaskException e) {
+			} catch (IOException | InterruptedException e) {
 				throw new LoadModelException(Messages.stackTrace(e));
 			}
 			return;
@@ -180,11 +176,11 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
     	}
 	}
 	
-	private void launchModelLoadOnProcess() throws IOException, InterruptedException, TaskException {
+	private void launchModelLoadOnProcess() throws IOException, InterruptedException {
 		HashMap<String, Object> args = new HashMap<String, Object>();
 		args.put("modelFolder", this.modelFolder);
 		args.put("modelSource", this.modelSource);
-		Task task = runner.task("loadModel", args);
+		NoGroovyTask task = runner.task("loadModel", args);
 		task.waitFor();
 		if (task.status == TaskStatus.CANCELED)
 			throw new RuntimeException();
@@ -375,7 +371,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		args.put("outputs", encOuts);
 
 		try {
-			Task task = runner.task("run", args);
+			NoGroovyTask task = runner.task("run", args);
 			task.waitFor();
 			if (task.status == TaskStatus.CANCELED)
 				throw new RuntimeException();
@@ -425,7 +421,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 		args.put("inputs", encIns);
 
 		try {
-			Task task = runner.task("inference", args);
+			NoGroovyTask task = runner.task("inference", args);
 			task.waitFor();
 			if (task.status == TaskStatus.CANCELED)
 				throw new RuntimeException();
@@ -458,7 +454,7 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	
 	private void closeInterprocess() throws RunModelException {
 		try {
-			Task task = runner.task("closeTensors");
+			NoGroovyTask task = runner.task("closeTensors");
 			task.waitFor();
 			if (task.status == TaskStatus.CANCELED)
 				throw new RuntimeException();
@@ -506,11 +502,11 @@ public class PytorchJavaCPPInterface implements DeepLearningEngineInterface
 	@Override
 	public void closeModel() {
 		if (this.interprocessing && runner != null) {
-			Task task;
+			NoGroovyTask task;
 			try {
 				task = runner.task("close");
 				task.waitFor();
-			} catch (InterruptedException | TaskException e) {
+			} catch (IOException | InterruptedException e) {
 				throw new RuntimeException(Messages.stackTrace(e));
 			}
 			if (task.status == TaskStatus.CANCELED)
